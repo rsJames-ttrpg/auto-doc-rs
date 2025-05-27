@@ -4,37 +4,44 @@ use std::{
     path::PathBuf,
 };
 
+use crate::llm_interface::models::ModelId;
 use clap::ValueEnum;
 use config::{Config, ConfigError, Environment};
 use serde::{Deserialize, Serialize};
 
 #[derive(Debug, Deserialize, Serialize, PartialEq, Eq, Default)]
 pub struct CrawlOptions {
-    max_depth: Option<usize>,
-    include_hidden: bool,
+    pub max_depth: Option<usize>,
+    pub include_hidden: bool,
     #[serde(default)]
-    include_patterns: Vec<String>,
+    pub include_patterns: Vec<String>,
     #[serde(default)]
-    exclude_patterns: Vec<String>,
-    git_mode: bool,
+    pub exclude_patterns: Vec<String>,
+    pub git_mode: bool,
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct LlmSettings {
-    model: String,
-    api_key: String,
+    pub model: ModelId,
+    pub api_key: Option<String>,
+    pub max_tokens: Option<u32>,
+    pub temperature: Option<f32>,
+    pub prompt_override: Option<String>,
 }
 
 impl Default for LlmSettings {
     fn default() -> Self {
         LlmSettings {
-            model: "claude".to_string(),
-            api_key: "YOUR_API_KEY_HERE".to_string(),
+            model: ModelId::Claude4Sonnet,
+            api_key: None,
+            max_tokens: Some(8500),
+            temperature: Some(0.5),
+            prompt_override: None,
         }
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq, Eq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
 #[allow(unused)]
 pub struct Settings {
     pub files: CrawlOptions,
@@ -217,12 +224,18 @@ mod tests {
             },
             llm_settings: vec![
                 LlmSettings {
-                    model: "claude".to_string(),
-                    api_key: "".to_string(),
+                    model: ModelId::Llama32,
+                    api_key: Some("".to_string()),
+                    max_tokens: Some(10),
+                    temperature: Some(0.1),
+                    prompt_override: None,
                 },
                 LlmSettings {
-                    model: "blaude".to_string(),
-                    api_key: "".to_string(),
+                    model: ModelId::Claude35Haiku,
+                    api_key: Some("".to_string()),
+                    max_tokens: Some(10),
+                    temperature: Some(0.1),
+                    prompt_override: None,
                 },
             ],
         };
@@ -299,11 +312,11 @@ exclude_patterns = ["target/"]
 git_mode = false
 
 [[llm_settings]]
-model = "blaude"
+model = "claude-sonnet-4-20250514"
 api_key = "test"
 
 [[llm_settings]]
-model = "claude"
+model = "gpt-4.1"
 api_key = "test"
 "#;
 
@@ -315,6 +328,9 @@ api_key = "test"
         let file_name = file_path.strip_suffix(".toml").unwrap();
 
         let result = Settings::from_file(file_name);
+        if result.is_err() {
+            eprint!("{:?}", result.as_ref().err())
+        }
         assert!(result.is_ok());
 
         let settings = result.unwrap();
@@ -324,8 +340,8 @@ api_key = "test"
         assert_eq!(settings.files.exclude_patterns, vec!["target/"]);
         assert!(!settings.files.git_mode);
         assert_eq!(settings.llm_settings.len(), 2);
-        assert!(settings.llm_settings[0].model == "blaude");
-        assert!(settings.llm_settings[1].model == "claude");
+        assert!(settings.llm_settings[0].model == ModelId::Claude4Sonnet);
+        assert!(settings.llm_settings[1].model == ModelId::Gpt41);
     }
 
     #[test]
@@ -340,7 +356,7 @@ api_key = "test"
         "git_mode": true
     },
     "llm_settings": [
-        {"model": "claude", "api_key": "test"}
+        {"model": "claude-3-5-haiku-20241022", "api_key": "test"}
     ]
 }"#;
 
@@ -352,6 +368,10 @@ api_key = "test"
         let file_name = file_path.strip_suffix(".json").unwrap();
 
         let result = Settings::from_file(file_name);
+
+        if result.is_err() {
+            eprint!("{:?}", result.as_ref().err())
+        }
         assert!(result.is_ok());
 
         let settings = result.unwrap();
@@ -361,7 +381,7 @@ api_key = "test"
         assert_eq!(settings.files.exclude_patterns, vec!["node_modules/"]);
         assert!(settings.files.git_mode);
         assert_eq!(settings.llm_settings.len(), 1);
-        assert!(settings.llm_settings[0].model == "claude");
+        assert!(settings.llm_settings[0].model == ModelId::Claude35Haiku);
     }
 
     #[test]

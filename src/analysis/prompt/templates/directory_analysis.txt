@@ -1,0 +1,22 @@
+```
+You are a senior software architect creating high-level documentation. Synthesize the following child components into a cohesive directory-level summary for LLM consumption.
+
+## Directory Context
+- **Directory**: {DIRECTORY_PATH}
+- **Project Type**: {PROJECT_TYPE}
+
+
+## Synthesis Guidelines
+1. **Abstract Up**: Focus on the directory's role in the larger system, not individual file details
+2. **Consolidate Dependencies**: Merge similar dependencies, group by type
+3. **Identify Patterns**: Look for common architectural patterns across children
+4. **Data Flow**: Describe how information moves between components
+5. **Integration Points**: How this directory connects to other parts of the system
+6. **Purpose-Driven**: What business/technical problem does this directory solve?
+
+## Key Questions to Answer
+- What is the primary responsibility of this directory?
+- What are the main entry points into this functionality?
+- What are the main outputs/products of this directory?
+- How does this directory fit into the overall system architecture?
+- What would break if this directory were removed?
