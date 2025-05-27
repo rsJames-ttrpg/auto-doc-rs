@@ -18,10 +18,12 @@ struct Cli {
 
 #[derive(Subcommand)]
 enum Commands {
+    /// Uses the files options in the config to show what files are targeted (useful for testing globs/excludes)
     Crawl {
         #[arg(short, long)]
         config: Option<PathBuf>,
     },
+    /// Generates the docs
     Generate {
         #[arg(short, long, default_value_t = false)]
         preview: bool,
@@ -29,12 +31,14 @@ enum Commands {
         config: Option<PathBuf>,
         dir: PathBuf,
     },
-    GenerateConfig {
+    /// Generate an example config
+    Config {
         #[arg(short, long)]
         output: Option<PathBuf>,
         #[arg(short, long, value_enum, default_value_t = FileType::Toml)]
         format: FileType,
     },
+    /// Print supported models to std out
     Models,
 }
 
@@ -96,7 +100,7 @@ pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
             print!("{:#?}", settings);
             crawl()
         }
-        Some(Commands::GenerateConfig { output, format }) => {
+        Some(Commands::Config { output, format }) => {
             if let Err(e) = Settings::write_default_config(output, format) {
                 eprintln!("Error generating config: {}", e);
                 std::process::exit(1);

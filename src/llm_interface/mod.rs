@@ -62,8 +62,8 @@ impl LlmClient {
         Self {
             api_key: key,
             model,
-            max_tokens: max_tokens.unwrap_or(8512),
-            temperature: temperature.unwrap_or(0.7),
+            max_tokens: max_tokens.unwrap_or(1500),
+            temperature: temperature.unwrap_or(0.5),
         }
     }
 
@@ -122,15 +122,13 @@ impl LlmClient {
         &self,
         system_prompt: &str,
         content: &str,
-        max_tokens: Option<u32>,
-        temperature: Option<f32>,
     ) -> Result<String, LlmError> {
         let llm = LLMBuilder::new()
             .backend(self.model.provider())
             .api_key(&self.api_key)
             .model(self.model.to_string())
-            .max_tokens(max_tokens.unwrap_or(8512))
-            .temperature(temperature.unwrap_or(0.7))
+            .max_tokens(self.max_tokens)
+            .temperature(self.temperature)
             .stream(false)
             .system(system_prompt)
             .build()
@@ -210,12 +208,7 @@ impl<'a> LlmRequestBuilder<'a> {
     #[allow(dead_code)]
     pub async fn execute_simple(self) -> Result<String, LlmError> {
         self.client
-            .get_simple_response(
-                &self.system_prompt,
-                &self.content,
-                self.max_tokens,
-                self.temperature,
-            )
+            .get_simple_response(&self.system_prompt, &self.content)
             .await
     }
 }
@@ -249,7 +242,7 @@ mod tests {
     #[tokio::test]
     async fn test_structured_response() -> Result<(), LlmError> {
         dotenv().ok();
-        let client = LlmClient::new(models::ModelId::Claude4Sonnet, None, Some(8512), Some(0.2));
+        let client = LlmClient::new(models::ModelId::Claude35Haiku, None, Some(1000), Some(0.2));
 
         let response: TaskResponse = client
             .request()

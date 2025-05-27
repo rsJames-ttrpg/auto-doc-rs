@@ -34,7 +34,7 @@ impl Default for LlmSettings {
         LlmSettings {
             model: ModelId::Claude4Sonnet,
             api_key: None,
-            max_tokens: Some(8500),
+            max_tokens: Some(1500),
             temperature: Some(0.5),
             prompt_override: None,
         }
