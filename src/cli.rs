@@ -153,11 +153,8 @@ pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
     if let Some(generator) = cli.completions {
         let mut cmd = Cli::command();
-        eprintln!("Generating completion file for {generator:?}...");
         print_completions(generator, &mut cmd);
-    } else {
-        println!("{cli:#?}");
-    }
+    };
     init_tracing(cli.log_level.clone(), cli.json_logs)?;
     let settings: Settings = match cli.config {
         Some(config_path) => Settings::from_file(&config_path.to_string_lossy())?,
