@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tracing::debug;
+use tracing::{debug, error, warn};
 
 use crate::analysis::summary::{
     AnalysisAudience, AnalysisContext, AnalysisDepth, AnalysisError, ChildAnalysis, FileAnalysis,
@@ -93,7 +93,7 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
         &self,
         root_path: P,
         options: AnalysisCrawlOptions,
-    ) -> Result<(ProjectAnalysis, Vec<ChildAnalysis>), AnalysisCrawlError> {
+    ) -> Result<(Option<ProjectAnalysis>, Vec<ChildAnalysis>), AnalysisCrawlError> {
         let root_path = root_path.as_ref();
         debug!("DEBUG: Starting analysis of: {}", root_path.display());
 
@@ -129,10 +129,17 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
         }
 
         // Finally, synthesize into project analysis
-        let project_analysis = self
+        let project_analysis = match self
             .analyzer
             .analyze_project(root_path, &child_analyses, &options.analysis_context)
-            .await?;
+            .await
+        {
+            Ok(proj) => Some(proj),
+            Err(e) => {
+                error!("Error with Project analysis {}", e.to_string());
+                None
+            }
+        };
 
         Ok((project_analysis, child_analyses))
     }
@@ -167,10 +174,20 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
                         match child {
                             FileNode::File { .. } => {
                                 if self.should_analyze_file(child, options) {
-                                    if let Some(file_analysis) =
-                                        self.analyze_single_file(child, options).await?
-                                    {
-                                        child_analyses.push(ChildAnalysis::File(file_analysis));
+                                    match self.analyze_single_file(child, options).await {
+                                        Ok(Some(file_analysis)) => {
+                                            child_analyses.push(ChildAnalysis::File(file_analysis));
+                                        }
+                                        Ok(None) => {
+                                            warn!("Empty analysis for {}", child.name())
+                                        }
+                                        Err(e) => {
+                                            error!(
+                                                "Analysis Failed for {} with error: {}",
+                                                child.name(),
+                                                e.to_string()
+                                            )
+                                        }
                                     }
                                 }
                             }
@@ -181,15 +198,25 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
                                 if !sub_analyses.is_empty() {
                                     child_analyses.extend(sub_analyses.clone());
                                     // Create directory analysis for this subdirectory
-                                    let dir_analysis = self
+                                    match self
                                         .analyzer
                                         .analyze_directory(
                                             child.path(),
                                             &sub_analyses,
                                             &options.analysis_context,
                                         )
-                                        .await?;
-                                    child_analyses.push(ChildAnalysis::Directory(dir_analysis));
+                                        .await
+                                    {
+                                        Ok(dir_analysis) => {
+                                            child_analyses
+                                                .push(ChildAnalysis::Directory(dir_analysis));
+                                        }
+                                        Err(e) => error!(
+                                            "Error with directory Analysis: {}, error: {}",
+                                            child.name(),
+                                            e.to_string()
+                                        ),
+                                    }
                                 }
                             }
                         }

@@ -120,14 +120,17 @@ impl MarkdownGenerator {
     /// Generate markdown files for the entire project analysis
     pub async fn generate_documentation(
         &self,
-        project_analysis: &ProjectAnalysis,
+        project_analysis: &Option<ProjectAnalysis>,
         child_analyses: &[ChildAnalysis],
     ) -> Result<()> {
         // Create output directory
         fs::create_dir_all(&self.config.output_dir).await?;
 
         // Generate project overview using Display implementation
-        self.generate_project_overview(project_analysis).await?;
+        if let Some(project_analysis) = project_analysis {
+            self.generate_project_overview(project_analysis).await?;
+        }
+
         for analysis in child_analyses {
             match &analysis {
                 ChildAnalysis::Directory(dir) => {
