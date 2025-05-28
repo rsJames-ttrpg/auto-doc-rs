@@ -2,11 +2,16 @@ use crate::crawler::file::{CrawlOptions, crawl_directory};
 use crate::generate::{AnalysisCrawlOptions, AnalysisCrawler};
 use crate::llm_interface::LlmClient;
 use crate::llm_interface::models::ModelId;
+use crate::output::file_system::{MarkdownConfig, MarkdownGenerator};
 use crate::settings::{FileType, Settings};
-use clap::{Parser, Subcommand};
+use clap::{Parser, Subcommand, ValueEnum};
 use dotenv::dotenv;
+use indicatif::{ProgressBar, ProgressStyle};
 use std::path::PathBuf;
+use std::time::Duration;
 use strum::IntoEnumIterator;
+use tracing::{Level, error};
+use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
 #[derive(Parser)]
 #[command(name = "auto-doc")]
@@ -14,22 +19,80 @@ use strum::IntoEnumIterator;
 struct Cli {
     #[command(subcommand)]
     command: Option<Commands>,
+    #[arg(short, long, global = true, default_value = "warn")]
+    log_level: LogLevel,
+
+    /// Enable JSON logging format
+    #[arg(long, global = true, default_value_t = false)]
+    json_logs: bool,
+    #[arg(short, long)]
+    config: Option<PathBuf>,
+}
+
+#[derive(Debug, Clone, ValueEnum)]
+enum LogLevel {
+    Trace,
+    Debug,
+    Info,
+    Warn,
+    Error,
+}
+
+impl From<LogLevel> for Level {
+    fn from(level: LogLevel) -> Self {
+        match level {
+            LogLevel::Trace => Level::TRACE,
+            LogLevel::Debug => Level::DEBUG,
+            LogLevel::Info => Level::INFO,
+            LogLevel::Warn => Level::WARN,
+            LogLevel::Error => Level::ERROR,
+        }
+    }
+}
+
+/// Initialize tracing with the specified log level
+fn init_tracing(log_level: LogLevel, json_format: bool) -> Result<(), Box<dyn std::error::Error>> {
+    let level: Level = log_level.into();
+
+    // Create a filter that respects RUST_LOG env var or uses the CLI arg
+    let filter =
+        EnvFilter::try_from_default_env().or_else(|_| EnvFilter::try_new(level.to_string()))?;
+
+    if json_format {
+        // JSON format for structured logging
+        let subscriber = FmtSubscriber::builder()
+            .with_env_filter(filter)
+            .json()
+            .finish();
+
+        tracing::subscriber::set_global_default(subscriber)?;
+    } else {
+        // Pretty format for human-readable logs
+        let subscriber = FmtSubscriber::builder()
+            .with_env_filter(filter)
+            .with_target(false) // Don't show module paths
+            .with_thread_ids(false) // Don't show thread IDs
+            .with_file(false) // Don't show file names
+            .with_line_number(false) // Don't show line numbers
+            .finish();
+
+        tracing::subscriber::set_global_default(subscriber)?;
+    }
+
+    Ok(())
 }
 
 #[derive(Subcommand)]
 enum Commands {
     /// Uses the files options in the config to show what files are targeted (useful for testing globs/excludes)
-    Crawl {
-        #[arg(short, long)]
-        config: Option<PathBuf>,
-    },
+    Crawl,
     /// Generates the docs
     Generate {
         #[arg(short, long, default_value_t = false)]
         preview: bool,
-        #[arg(short, long)]
-        config: Option<PathBuf>,
         dir: PathBuf,
+        #[arg(short, long)]
+        directory_output: Option<PathBuf>,
     },
     /// Generate an example config
     Config {
@@ -59,7 +122,7 @@ fn crawl() -> Result<(), Box<dyn std::error::Error>> {
     match crawl_directory("./src", options) {
         Ok(tree) => {
             println!("File tree:");
-            tree.print_tree(0);
+            tree.print_tree();
 
             println!("\nTotal files: {}", tree.total_files());
 
@@ -91,32 +154,30 @@ fn crawl() -> Result<(), Box<dyn std::error::Error>> {
 
 pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
+    init_tracing(cli.log_level.clone(), cli.json_logs)?;
+    let settings: Settings = match cli.config {
+        Some(config_path) => Settings::from_file(&config_path.to_string_lossy())?,
+        None => Settings::from_env()?,
+    };
+
     match cli.command {
-        Some(Commands::Crawl { config }) => {
-            let settings = match config {
-                Some(config_path) => Settings::from_file(&config_path.to_string_lossy())?,
-                None => Settings::from_env()?,
-            };
+        Some(Commands::Crawl) => {
             print!("{:#?}", settings);
             crawl()
         }
         Some(Commands::Config { output, format }) => {
             if let Err(e) = Settings::write_default_config(output, format) {
-                eprintln!("Error generating config: {}", e);
+                error!("Error generating config: {}", e);
                 std::process::exit(1);
             }
             Ok(())
         }
         Some(Commands::Generate {
             preview,
-            config,
             dir,
+            directory_output,
         }) => {
             dotenv().ok();
-            let settings = match config {
-                Some(config_path) => Settings::from_file(&config_path.to_string_lossy())?,
-                None => Settings::from_env()?,
-            };
             let analyser: LlmClient = LlmClient::new(
                 settings.llm_settings.first().unwrap().model.clone(),
                 settings.llm_settings.first().unwrap().api_key.clone(),
@@ -133,17 +194,38 @@ pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
                     max_depth: settings.files.max_depth,
                     ..Default::default()
                 },
-                max_concurrent_analyses: 5,
                 ..Default::default()
             };
             match preview {
                 true => {
-                    let preview = crawler.preview_analysis(dir, &options)?;
+                    let preview = crawler.preview_analysis(dir.clone(), &options)?;
                     preview.print_summary()
                 }
                 false => {
-                    let analysis = crawler.analyze_project(dir, options).await?;
-                    println!("{:?}", analysis)
+                    let crawl_spinner = ProgressBar::new_spinner();
+                    crawl_spinner.set_style(
+                        ProgressStyle::default_spinner()
+                            .tick_chars("⠁⠂⠄⡀⢀⠠⠐⠈ ")
+                            .template("{spinner:.blue} {msg}")
+                            .unwrap(),
+                    );
+                    crawl_spinner.set_message("Crawling directory structure...");
+                    crawl_spinner.enable_steady_tick(Duration::from_millis(100));
+                    let (analysis, children) =
+                        crawler.analyze_project(dir.clone(), options).await?;
+                    crawl_spinner.finish_with_message("✅ Directory crawling complete");
+
+                    let mut config_builder = MarkdownConfig::builder().project_root(dir.clone());
+
+                    if let Some(output_dir) = directory_output {
+                        config_builder = config_builder.output_dir(output_dir);
+                    }
+
+                    let config = config_builder.build();
+                    let md_generator = MarkdownGenerator::new(config);
+                    md_generator
+                        .generate_documentation(&analysis, &children)
+                        .await?;
                 }
             }
             Ok(())

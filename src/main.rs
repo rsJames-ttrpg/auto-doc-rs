@@ -3,6 +3,7 @@ mod cli;
 mod crawler;
 mod generate;
 mod llm_interface;
+mod output;
 mod settings;
 use crate::cli::run_application;
 

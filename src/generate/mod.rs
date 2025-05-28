@@ -1,7 +1,7 @@
 use std::collections::HashMap;
 use std::fs;
 use std::path::{Path, PathBuf};
-use tokio::task::JoinSet;
+use tracing::debug;
 
 use crate::analysis::summary::{
     AnalysisAudience, AnalysisContext, AnalysisDepth, AnalysisError, ChildAnalysis, FileAnalysis,
@@ -15,8 +15,6 @@ pub struct AnalysisCrawlOptions {
     pub crawl_options: CrawlOptions,
     /// Analysis context for LLM processing
     pub analysis_context: AnalysisContext,
-    /// Maximum number of concurrent file analyses
-    pub max_concurrent_analyses: usize,
     /// File extensions to analyze (empty means analyze all text files)
     pub analyzable_extensions: Vec<String>,
     /// Maximum file size to analyze (in bytes)
@@ -32,7 +30,6 @@ impl Default for AnalysisCrawlOptions {
                 target_audience: AnalysisAudience::LlmConsumption,
                 analysis_depth: AnalysisDepth::Standard,
             },
-            max_concurrent_analyses: 10,
             analyzable_extensions: vec![
                 "rs".to_string(),
                 "py".to_string(),
@@ -96,14 +93,40 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
         &self,
         root_path: P,
         options: AnalysisCrawlOptions,
-    ) -> Result<ProjectAnalysis, AnalysisCrawlError> {
+    ) -> Result<(ProjectAnalysis, Vec<ChildAnalysis>), AnalysisCrawlError> {
         let root_path = root_path.as_ref();
+        debug!("DEBUG: Starting analysis of: {}", root_path.display());
 
         // First, crawl the directory structure
         let file_tree = crawl_directory(root_path, options.crawl_options.clone())?;
 
+        // Print what we found during crawling
+        debug!("DEBUG: File tree structure: {}", file_tree.tree_string());
+
         // Then analyze the structure
+        debug!("DEBUG: Starting analyze_file_tree...");
         let child_analyses = self.analyze_file_tree(&file_tree, &options).await?;
+
+        // Debug what analyze_file_tree returned
+        debug!(
+            "DEBUG: analyze_file_tree returned {} items:",
+            child_analyses.len()
+        );
+        for (i, child) in child_analyses.iter().enumerate() {
+            match child {
+                ChildAnalysis::File(f) => {
+                    debug!("  {}: FILE: {}", i, f.file_path.display());
+                }
+                ChildAnalysis::Directory(d) => {
+                    debug!(
+                        "  {}: DIRECTORY: {} (depth: {})",
+                        i,
+                        d.directory_path.display(),
+                        d.depth_level
+                    );
+                }
+            }
+        }
 
         // Finally, synthesize into project analysis
         let project_analysis = self
@@ -111,108 +134,12 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
             .analyze_project(root_path, &child_analyses, &options.analysis_context)
             .await?;
 
-        Ok(project_analysis)
+        Ok((project_analysis, child_analyses))
     }
 
     /// Analyze a file tree node and all its children
-    async fn analyze_file_tree(
-        &self,
-        node: &FileNode,
-        options: &AnalysisCrawlOptions,
-    ) -> Result<Vec<ChildAnalysis>, AnalysisCrawlError> {
-        match node {
-            FileNode::File { .. } => {
-                // Single file analysis
-                if let Some(analysis) = self.analyze_single_file(node, options).await? {
-                    Ok(vec![ChildAnalysis::File(analysis)])
-                } else {
-                    Ok(vec![])
-                }
-            }
-            FileNode::Directory { children, .. } => {
-                // Analyze all children concurrently with limited concurrency
-                let mut join_set = JoinSet::new();
-                let mut child_analyses = Vec::new();
-
-                // Collect all analyzable files first
-                let analyzable_files: Vec<_> = children
-                    .values()
-                    .filter(|child| match child {
-                        FileNode::File { .. } => self.should_analyze_file(child, options),
-                        FileNode::Directory { .. } => true, // Always process directories
-                    })
-                    .collect();
-
-                // Process files with concurrency limit
-                // Process files with concurrency limit
-                let semaphore = std::sync::Arc::new(tokio::sync::Semaphore::new(
-                    options.max_concurrent_analyses,
-                ));
-                let analyzer = std::sync::Arc::new(self.analyzer.clone());
-
-                for child in analyzable_files {
-                    let child_clone = child.clone();
-                    let options_clone = options.clone();
-                    let analyzer_clone = analyzer.clone();
-                    let sem_clone = semaphore.clone();
-
-                    join_set.spawn(async move {
-                        let _permit = sem_clone.acquire().await.unwrap();
-
-                        match &child_clone {
-                            FileNode::File { .. } => {
-                                if let Some(analysis) = Self::analyze_single_file_static(
-                                    &*analyzer_clone,
-                                    &child_clone,
-                                    &options_clone,
-                                )
-                                .await?
-                                {
-                                    Ok(Some(ChildAnalysis::File(analysis)))
-                                } else {
-                                    Ok(None)
-                                }
-                            }
-                            FileNode::Directory { .. } => {
-                                let sub_analyses = Self::analyze_file_tree_static(
-                                    &*analyzer_clone,
-                                    &child_clone,
-                                    &options_clone,
-                                )
-                                .await?;
-                                if !sub_analyses.is_empty() {
-                                    let dir_analysis = (*analyzer_clone)
-                                        .analyze_directory(
-                                            child_clone.path(),
-                                            &sub_analyses,
-                                            &options_clone.analysis_context,
-                                        )
-                                        .await?;
-                                    Ok(Some(ChildAnalysis::Directory(dir_analysis)))
-                                } else {
-                                    Ok(None)
-                                }
-                            }
-                        }
-                    });
-                }
-                // Collect results
-                while let Some(result) = join_set.join_next().await {
-                    match result? {
-                        Ok(Some(analysis)) => child_analyses.push(analysis),
-                        Ok(None) => {} // Skip unanalyzable files
-                        Err(e) => return Err(e),
-                    }
-                }
-
-                Ok(child_analyses)
-            }
-        }
-    }
-
-    // Static versions for use in async closures
-    fn analyze_file_tree_static<'a>(
-        analyzer: &'a A,
+    pub fn analyze_file_tree<'a>(
+        &'a self,
         node: &'a FileNode,
         options: &'a AnalysisCrawlOptions,
     ) -> std::pin::Pin<
@@ -225,9 +152,8 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
         Box::pin(async move {
             match node {
                 FileNode::File { .. } => {
-                    if let Some(analysis) =
-                        Self::analyze_single_file_static(analyzer, node, options).await?
-                    {
+                    // Single file analysis
+                    if let Some(analysis) = self.analyze_single_file(node, options).await? {
                         Ok(vec![ChildAnalysis::File(analysis)])
                     } else {
                         Ok(vec![])
@@ -236,11 +162,36 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
                 FileNode::Directory { children, .. } => {
                     let mut child_analyses = Vec::new();
 
+                    // Process each immediate child
                     for child in children.values() {
-                        if Self::should_analyze_file_static(child, options) {
-                            let sub_analyses =
-                                Self::analyze_file_tree_static(analyzer, child, options).await?;
-                            child_analyses.extend(sub_analyses);
+                        match child {
+                            FileNode::File { .. } => {
+                                if self.should_analyze_file(child, options) {
+                                    if let Some(file_analysis) =
+                                        self.analyze_single_file(child, options).await?
+                                    {
+                                        child_analyses.push(ChildAnalysis::File(file_analysis));
+                                    }
+                                }
+                            }
+                            FileNode::Directory { .. } => {
+                                // Recursively analyze subdirectory (boxed to avoid infinite size)
+                                let sub_analyses = self.analyze_file_tree(child, options).await?;
+
+                                if !sub_analyses.is_empty() {
+                                    child_analyses.extend(sub_analyses.clone());
+                                    // Create directory analysis for this subdirectory
+                                    let dir_analysis = self
+                                        .analyzer
+                                        .analyze_directory(
+                                            child.path(),
+                                            &sub_analyses,
+                                            &options.analysis_context,
+                                        )
+                                        .await?;
+                                    child_analyses.push(ChildAnalysis::Directory(dir_analysis));
+                                }
+                            }
                         }
                     }
 
@@ -299,7 +250,9 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
                 if *size > options.max_file_size {
                     return false;
                 }
-
+                if *size == 0 {
+                    return false;
+                }
                 // If no extensions specified, analyze all files
                 if options.analyzable_extensions.is_empty() {
                     return true;

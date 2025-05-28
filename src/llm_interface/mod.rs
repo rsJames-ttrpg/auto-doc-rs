@@ -1,11 +1,13 @@
+pub mod extract_json;
 pub mod models;
-
+use extract_json::{extract_json_aggressively, extract_json_from_response};
 use llm::{
     builder::LLMBuilder,
     chat::{ChatMessage, StructuredOutputFormat},
 };
 use schemars::{JsonSchema, schema_for};
-use serde::{Deserialize, Serialize};
+use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use tracing::{debug, error};
 
 #[derive(Debug, thiserror::Error)]
 pub enum LlmError {
@@ -25,6 +27,49 @@ pub struct LlmClient {
     model: models::ModelId,
     max_tokens: u32,
     temperature: f32,
+}
+
+fn try_parse<T>(text: &str) -> Result<T, LlmError>
+where
+    T: DeserializeOwned,
+{
+    let json_candidates: Vec<Option<String>> = vec![
+        Some(text.trim().to_string()),
+        extract_json_from_response(text),
+        extract_json_aggressively(text).first().cloned(),
+    ];
+
+    let mut all_errors = Vec::new();
+
+    for (i, candidate) in json_candidates.iter().enumerate() {
+        if let Some(json_text) = candidate {
+            debug!("Trying parse strategy {}: {:.200}...", i + 1, json_text);
+
+            match serde_json::from_str::<T>(json_text) {
+                Ok(parsed) => {
+                    debug!("✅ Successfully parsed with strategy {}", i + 1);
+                    return Ok(parsed);
+                }
+                Err(e) => {
+                    debug!("❌ Strategy {} failed: {}", i + 1, e);
+                    all_errors.push(format!("Strategy {}: {}", i + 1, e));
+                    continue;
+                }
+            }
+        } else {
+            debug!("❌ Strategy {} returned no candidate", i + 1);
+            all_errors.push(format!("Strategy {}: No JSON candidate found", i + 1));
+        }
+    }
+
+    // If all strategies failed, return comprehensive error
+    let error_summary = format!(
+        "Failed to parse JSON with all {} strategies:\n{}",
+        json_candidates.len(),
+        all_errors.join("\n")
+    );
+    error!("{:}", error_summary);
+    Err(LlmError::ResponseParsing(error_summary))
 }
 
 impl LlmClient {
@@ -93,7 +138,20 @@ impl LlmClient {
             .max_tokens(self.max_tokens)
             .temperature(self.temperature)
             .stream(false)
-            .system(format!("{} Provide only the json object described by: ```json\n{:?}\n``` provide it as a valid json string without a code block ", system_prompt, value_schema))
+            .system(format!(
+                r#"{}
+CRITICAL INSTRUCTIONS:
+- You MUST respond with ONLY a valid JSON object
+- NO explanatory text before or after the JSON
+- NO markdown code blocks or formatting
+- NO comments or additional content
+- The JSON must exactly match this schema:
+```json
+{:?}
+``
+Any response that is not pure JSON will be rejected."#,
+                system_prompt, value_schema
+            ))
             .schema(output_schema);
 
         let llm = builder
@@ -108,14 +166,13 @@ impl LlmClient {
             .map_err(|e| LlmError::Chat(e.to_string()))?;
 
         let response_text = &response.text().unwrap();
-        eprintln!("{:?}", response_text);
         if response_text.is_empty() {
+            error!("Empty response");
             return Err(LlmError::ResponseParsing("Empty Response".to_string()));
         }
 
         // Parse the structured response
-        serde_json::from_str::<T>(response_text)
-            .map_err(|e| LlmError::ResponseParsing(e.to_string()))
+        try_parse::<T>(response_text)
     }
 
     pub async fn get_simple_response(

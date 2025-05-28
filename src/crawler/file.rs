@@ -281,7 +281,13 @@ impl FileNode {
         }
     }
 
-    pub fn print_tree(&self, indent: usize) {
+    pub fn tree_string(&self) -> String {
+        let mut result = String::new();
+        self.tree_string_recursive(0, &mut result);
+        result
+    }
+
+    fn tree_string_recursive(&self, indent: usize, result: &mut String) {
         let prefix = "  ".repeat(indent);
         match self {
             FileNode::File {
@@ -291,7 +297,10 @@ impl FileNode {
                 ..
             } => {
                 let ext_str = extension.as_deref().unwrap_or("");
-                println!("{}📄 {} ({} bytes) {}", prefix, name, size, ext_str);
+                result.push_str(&format!(
+                    "{}📄 {} ({} bytes) {}\n",
+                    prefix, name, size, ext_str
+                ));
             }
             FileNode::Directory {
                 name,
@@ -299,12 +308,20 @@ impl FileNode {
                 total_size,
                 ..
             } => {
-                println!("{}📁 {} ({} bytes total)", prefix, name, total_size);
+                result.push_str(&format!(
+                    "{}📁 {} ({} bytes total)\n",
+                    prefix, name, total_size
+                ));
                 for child in children.values() {
-                    child.print_tree(indent + 1);
+                    child.tree_string_recursive(indent + 1, result);
                 }
             }
         }
+    }
+
+    /// Keep the original print method for compatibility
+    pub fn print_tree(&self) {
+        print!("{}", self.tree_string());
     }
 
     /// Returns an iterator over all nodes in the tree (depth-first)

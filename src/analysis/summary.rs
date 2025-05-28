@@ -1,6 +1,7 @@
 use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use std::fmt::{Display, Formatter};
 use std::path::{Path, PathBuf};
 
 use crate::analysis::prompt::PromptTemplates;
@@ -179,6 +180,15 @@ pub enum ChildAnalysis {
     Directory(DirectoryAnalysis),
 }
 
+impl Display for ChildAnalysis {
+    fn fmt(&self, f: &mut Formatter<'_>) -> Result<(), std::fmt::Error> {
+        match self {
+            ChildAnalysis::Directory(dir) => write!(f, "{}", dir),
+            ChildAnalysis::File(file) => write!(f, "{}", file),
+        }
+    }
+}
+
 #[async_trait]
 impl LlmAnalyzer for LlmClient {
     async fn analyze_file(
@@ -197,7 +207,10 @@ impl LlmAnalyzer for LlmClient {
             .await;
         match request {
             Ok(res) => Ok(res),
-            Err(e) => Err(AnalysisError::LlmError(e.to_string())),
+            Err(e) => {
+                eprint!("path: {:?}", file_path);
+                Err(AnalysisError::LlmError(e.to_string()))
+            }
         }
     }
 
@@ -219,7 +232,10 @@ impl LlmAnalyzer for LlmClient {
             .await;
         match request {
             Ok(res) => Ok(res),
-            Err(e) => Err(AnalysisError::LlmError(e.to_string())),
+            Err(e) => {
+                eprint!("path: {:?}", directory_path);
+                Err(AnalysisError::LlmError(e.to_string()))
+            }
         }
     }
 
@@ -241,7 +257,10 @@ impl LlmAnalyzer for LlmClient {
             .await;
         match request {
             Ok(res) => Ok(res),
-            Err(e) => Err(AnalysisError::LlmError(e.to_string())),
+            Err(e) => {
+                eprint!("path: {:?}", project_root);
+                Err(AnalysisError::LlmError(e.to_string()))
+            }
         }
     }
 }
