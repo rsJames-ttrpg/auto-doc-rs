@@ -4,16 +4,19 @@ use crate::llm_interface::LlmClient;
 use crate::llm_interface::models::ModelId;
 use crate::output::file_system::{MarkdownConfig, MarkdownGenerator};
 use crate::settings::{FileType, Settings};
-use clap::{Parser, Subcommand, ValueEnum};
+use clap::CommandFactory;
+use clap::{Command, Parser, Subcommand, ValueEnum};
+use clap_complete::{Generator, Shell, generate};
 use dotenv::dotenv;
 use indicatif::{ProgressBar, ProgressStyle};
+use std::io;
 use std::path::PathBuf;
 use std::time::Duration;
 use strum::IntoEnumIterator;
 use tracing::{Level, error};
 use tracing_subscriber::{EnvFilter, FmtSubscriber};
 
-#[derive(Parser)]
+#[derive(Parser, Debug)]
 #[command(name = "auto-doc")]
 #[command(bin_name = "auto-doc")]
 struct Cli {
@@ -27,6 +30,8 @@ struct Cli {
     json_logs: bool,
     #[arg(short, long)]
     config: Option<PathBuf>,
+    #[arg(long = "completion", value_enum)]
+    completions: Option<Shell>,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -82,7 +87,7 @@ fn init_tracing(log_level: LogLevel, json_format: bool) -> Result<(), Box<dyn st
     Ok(())
 }
 
-#[derive(Subcommand)]
+#[derive(Subcommand, Debug)]
 enum Commands {
     /// Uses the files options in the config to show what files are targeted (useful for testing globs/excludes)
     Crawl,
@@ -103,6 +108,15 @@ enum Commands {
     },
     /// Print supported models to std out
     Models,
+}
+
+fn print_completions<G: Generator>(generator: G, cmd: &mut Command) {
+    generate(
+        generator,
+        cmd,
+        cmd.get_name().to_string(),
+        &mut io::stdout(),
+    );
 }
 
 fn crawl() -> Result<(), Box<dyn std::error::Error>> {
@@ -154,6 +168,13 @@ fn crawl() -> Result<(), Box<dyn std::error::Error>> {
 
 pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
     let cli = Cli::parse();
+    if let Some(generator) = cli.completions {
+        let mut cmd = Cli::command();
+        eprintln!("Generating completion file for {generator:?}...");
+        print_completions(generator, &mut cmd);
+    } else {
+        println!("{cli:#?}");
+    }
     init_tracing(cli.log_level.clone(), cli.json_logs)?;
     let settings: Settings = match cli.config {
         Some(config_path) => Settings::from_file(&config_path.to_string_lossy())?,
