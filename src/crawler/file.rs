@@ -21,6 +21,7 @@ pub enum FileNode {
 }
 
 impl FileNode {
+    #[allow(dead_code)]
     pub fn name(&self) -> &str {
         match self {
             FileNode::File { name, .. } => name,
@@ -329,6 +330,7 @@ impl FileNode {
         FileNodeIterator::new(self)
     }
 
+    #[allow(dead_code)]
     /// Returns an iterator over all nodes with their depth level
     pub fn iter_with_depth(&self) -> FileNodeDepthIterator {
         FileNodeDepthIterator::new(self)
@@ -340,6 +342,7 @@ impl FileNode {
         self.iter().collect()
     }
 
+    #[allow(dead_code)]
     /// Collects all file nodes only
     pub fn collect_files(&self) -> Vec<&FileNode> {
         self.iter().filter(|node| node.is_file()).collect()
@@ -390,6 +393,7 @@ pub struct FileNodeDepthIterator<'a> {
 }
 
 impl<'a> FileNodeDepthIterator<'a> {
+    #[allow(dead_code)]
     fn new(root: &'a FileNode) -> Self {
         Self {
             stack: vec![(root, 0)],

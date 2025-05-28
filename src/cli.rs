@@ -142,23 +142,6 @@ fn crawl() -> Result<(), Box<dyn std::error::Error>> {
 
             let rust_files = tree.find_files_by_extension("rs");
             println!("Found {} Rust files", rust_files.len());
-
-            // Examples using the new iterators
-            println!("\nAll nodes:");
-            for node in tree.iter() {
-                println!("  {:?}", node.path());
-            }
-
-            println!("\nFiles only:");
-            for file in tree.collect_files() {
-                println!("  📄 {:?}", file.path());
-            }
-
-            println!("\nWith depth levels:");
-            for (node, depth) in tree.iter_with_depth() {
-                let indent = "  ".repeat(depth);
-                println!("{}[{}] {}", indent, depth, node.name());
-            }
         }
         Err(e) => eprintln!("Error crawling directory: {}", e),
     }
@@ -182,10 +165,7 @@ pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
     };
 
     match cli.command {
-        Some(Commands::Crawl) => {
-            print!("{:#?}", settings);
-            crawl()
-        }
+        Some(Commands::Crawl) => crawl(),
         Some(Commands::Config { output, format }) => {
             if let Err(e) = Settings::write_default_config(output, format) {
                 error!("Error generating config: {}", e);
