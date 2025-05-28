@@ -1,5 +1,8 @@
+pub mod exceptions;
 pub mod extract_json;
 pub mod models;
+use crate::llm_interface::exceptions::LlmError;
+use backoff::{ExponentialBackoff, backoff::Backoff};
 use extract_json::{extract_json_aggressively, extract_json_from_response};
 use llm::{
     builder::LLMBuilder,
@@ -7,18 +10,29 @@ use llm::{
 };
 use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use std::time::Duration;
+use tokio::time::sleep;
 use tracing::{debug, error};
 
-#[derive(Debug, thiserror::Error)]
-pub enum LlmError {
-    #[error("Schema serialization error: {0}")]
-    SchemaSerialization(#[from] serde_json::Error),
-    #[error("LLM build error: {0}")]
-    Build(String),
-    #[error("Chat error: {0}")]
-    Chat(String),
-    #[error("Response parsing error: {0}")]
-    ResponseParsing(String),
+#[derive(Clone)]
+pub struct RetryConfig {
+    pub max_retries: u32,
+    pub initial_interval: Duration,
+    pub max_interval: Duration,
+    pub multiplier: f64,
+    pub max_elapsed_time: Duration,
+}
+
+impl Default for RetryConfig {
+    fn default() -> Self {
+        Self {
+            max_retries: 5,
+            initial_interval: Duration::from_millis(1000),
+            max_interval: Duration::from_secs(60),
+            multiplier: 2.0,
+            max_elapsed_time: Duration::from_secs(300), // 5 minutes
+        }
+    }
 }
 
 #[derive(Clone)]
@@ -27,6 +41,7 @@ pub struct LlmClient {
     model: models::ModelId,
     max_tokens: u32,
     temperature: f32,
+    retry_config: Option<RetryConfig>,
 }
 
 fn try_parse<T>(text: &str) -> Result<T, LlmError>
@@ -109,9 +124,74 @@ impl LlmClient {
             model,
             max_tokens: max_tokens.unwrap_or(1500),
             temperature: temperature.unwrap_or(0.5),
+            retry_config: None,
         }
     }
 
+    #[allow(dead_code)]
+    pub fn with_retry_config(mut self, retry_config: RetryConfig) -> Self {
+        self.retry_config = Some(retry_config);
+        self
+    }
+
+    pub async fn get_structured_response_with_retry<T>(
+        &self,
+        system_prompt: &str,
+        user_prompt: &str,
+    ) -> Result<T, LlmError>
+    where
+        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
+    {
+        let default_config = RetryConfig::default();
+        let retry_config = self.retry_config.as_ref().unwrap_or(&default_config);
+
+        let mut backoff = ExponentialBackoff {
+            initial_interval: retry_config.initial_interval,
+            max_interval: retry_config.max_interval,
+            multiplier: retry_config.multiplier,
+            max_elapsed_time: Some(retry_config.max_elapsed_time),
+            ..Default::default()
+        };
+
+        let mut attempt = 0;
+
+        loop {
+            match self
+                .get_structured_response(system_prompt, user_prompt)
+                .await
+            {
+                Ok(result) => return Ok(result),
+                Err(error) => {
+                    attempt += 1;
+
+                    // Check if we should retry
+                    if !error.is_retryable() || attempt > retry_config.max_retries {
+                        return Err(error);
+                    }
+
+                    // Get next backoff delay
+                    if let Some(delay) = backoff.next_backoff() {
+                        tracing::warn!(
+                            "Attempt {} failed with retryable error: {}. Retrying in {:?}",
+                            attempt,
+                            error,
+                            delay
+                        );
+                        sleep(delay).await;
+                    } else {
+                        // Backoff has given up (max_elapsed_time reached)
+                        tracing::error!(
+                            "Max elapsed time reached, giving up after {} attempts",
+                            attempt
+                        );
+                        return Err(error);
+                    }
+                }
+            }
+        }
+    }
+
+    // Update the original method to use the new error categorization
     pub async fn get_structured_response<T>(
         &self,
         system_prompt: &str,
@@ -121,7 +201,6 @@ impl LlmClient {
         T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
     {
         let schema = schema_for!(T);
-
         let value_schema = serde_json::to_value(&schema)?;
 
         let output_schema = StructuredOutputFormat {
@@ -163,16 +242,14 @@ Any response that is not pure JSON will be rejected."#,
         let response = llm
             .chat(&messages)
             .await
-            .map_err(|e| LlmError::Chat(e.to_string()))?;
+            .map_err(|e| LlmError::from_error_string(e.to_string()))?; // Use new error categorization
 
-        let response_text = &response.text().unwrap();
+        let response_text = response.text().unwrap_or_default();
         if response_text.is_empty() {
-            error!("Empty response");
             return Err(LlmError::ResponseParsing("Empty Response".to_string()));
         }
 
-        // Parse the structured response
-        try_parse::<T>(response_text)
+        try_parse::<T>(response_text.as_str())
     }
 
     pub async fn get_simple_response(
@@ -253,6 +330,7 @@ impl<'a> LlmRequestBuilder<'a> {
         self
     }
 
+    #[allow(dead_code)]
     pub async fn execute_structured<T>(self) -> Result<T, LlmError>
     where
         T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
@@ -266,6 +344,14 @@ impl<'a> LlmRequestBuilder<'a> {
     pub async fn execute_simple(self) -> Result<String, LlmError> {
         self.client
             .get_simple_response(&self.system_prompt, &self.content)
+            .await
+    }
+    pub async fn execute_structured_with_retry<T>(self) -> Result<T, LlmError>
+    where
+        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
+    {
+        self.client
+            .get_structured_response_with_retry(&self.system_prompt, &self.content)
             .await
     }
 }
@@ -326,5 +412,52 @@ mod tests {
 
         println!("Simple response: {}", response);
         Ok(())
+    }
+
+    #[test]
+    fn test_error_detection() {
+        // Test rate limit detection - your specific error format
+        assert!(matches!(
+            LlmError::from_error_string("Chat error: HTTP Error: HTTP status client error (429 Too Many Requests) for url (https://api.anthropic.com/v1/messages)".to_string()),
+            LlmError::RateLimit(_)
+        ));
+
+        // Test other rate limit formats
+        assert!(matches!(
+            LlmError::from_error_string("HTTP 429 Too Many Requests".to_string()),
+            LlmError::RateLimit(_)
+        ));
+
+        assert!(matches!(
+            LlmError::from_error_string("Rate limit exceeded".to_string()),
+            LlmError::RateLimit(_)
+        ));
+
+        // Test server error detection
+        assert!(matches!(
+            LlmError::from_error_string("Internal Server Error 500".to_string()),
+            LlmError::ServerError(_)
+        ));
+
+        assert!(matches!(
+            LlmError::from_error_string(
+                "Chat error: HTTP status server error (503 Service Unavailable)".to_string()
+            ),
+            LlmError::ServerError(_)
+        ));
+
+        // Test non-retryable error
+        assert!(matches!(
+            LlmError::from_error_string("Invalid API key".to_string()),
+            LlmError::Chat(_)
+        ));
+
+        // Test authentication errors (should not retry)
+        assert!(matches!(
+            LlmError::from_error_string(
+                "Chat error: HTTP status client error (401 Unauthorized)".to_string()
+            ),
+            LlmError::Chat(_)
+        ));
     }
 }

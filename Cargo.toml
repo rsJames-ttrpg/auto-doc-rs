@@ -6,6 +6,7 @@ edition = "2024"
 [dependencies]
 anyhow = "1.0.98"
 async-trait = "0.1.88"
+backoff = "0.4.0"
 clap = { version = "4.5.38", features = ["derive"] }
 clap_complete = "4.5.51"
 config = "0.15.11"

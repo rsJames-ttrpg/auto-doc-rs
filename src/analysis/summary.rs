@@ -203,7 +203,7 @@ impl LlmAnalyzer for LlmClient {
             .request()
             .system_prompt(prompt)
             .content(file_content)
-            .execute_structured::<FileAnalysis>()
+            .execute_structured_with_retry::<FileAnalysis>()
             .await;
         match request {
             Ok(res) => Ok(res),
@@ -228,7 +228,7 @@ impl LlmAnalyzer for LlmClient {
             .request()
             .system_prompt(prompt)
             .content(content)
-            .execute_structured::<DirectoryAnalysis>()
+            .execute_structured_with_retry::<DirectoryAnalysis>()
             .await;
         match request {
             Ok(res) => Ok(res),
@@ -253,7 +253,7 @@ impl LlmAnalyzer for LlmClient {
             .request()
             .system_prompt(prompt)
             .content(content)
-            .execute_structured::<ProjectAnalysis>()
+            .execute_structured_with_retry::<ProjectAnalysis>()
             .await;
         match request {
             Ok(res) => Ok(res),
