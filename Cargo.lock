@@ -1173,9 +1173,9 @@ checksum = "241eaef5fd12c88705a01fc1066c48c4b36e0dd4377dcdc7ec3942cea7a69956"
 
 [[package]]
 name = "llm"
-version = "1.2.8"
+version = "1.2.9"
 source = "registry+https://github.com/rust-lang/crates.io-index"
-checksum = "8c47103b517b75d889a3f9d5a8934ad477780efe1ac96a79830d775107ebaf7f"
+checksum = "c7cee7263ab90d6c4c87bca12f2f698dd0ccef67281894b682964c89c98955a8"
 dependencies = [
  "async-trait",
  "axum",

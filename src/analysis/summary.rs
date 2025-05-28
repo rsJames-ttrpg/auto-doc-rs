@@ -1,11 +1,17 @@
 use async_trait::async_trait;
 use schemars::JsonSchema;
 use serde::{Deserialize, Serialize};
+use serde_json::json;
 use std::fmt::{Display, Formatter};
 use std::path::{Path, PathBuf};
 
 use crate::analysis::prompt::PromptTemplates;
 use crate::llm_interface::LlmClient;
+
+pub trait SimplifiedSchema {
+    /// Generate a simplified, Google-friendly JSON schema
+    fn simplified_schema() -> serde_json::Value;
+}
 
 // Core data structures
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -26,6 +32,37 @@ pub struct FileAnalysis {
         description = "Public functions, structs, traits, or modules that other components can use"
     )]
     pub public_interfaces: Vec<Interface>,
+}
+
+impl SimplifiedSchema for FileAnalysis {
+    /// Generate a simplified schema by modifying the generated one
+    fn simplified_schema() -> serde_json::Value {
+        json!({
+            "type": "object",
+            "required": ["file_path", "summary", "external_dependencies"],
+            "properties": {
+                "file_path": {"type": "string"},
+                "summary": {"type": "string"},
+                "file_type": {"type": "string"},
+                "external_dependencies": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "public_interfaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "interface_type"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "interface_type": {"type": "string", "enum": ["Function", "Struct", "Trait", "Module", "Api", "Configuration", "DataModel"],},
+                            "description": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
@@ -70,6 +107,90 @@ pub struct ProjectAnalysis {
     pub extension_points: Vec<String>,
     #[schemars(description = "Potential technical risks or dependencies that could cause issues")]
     pub risk_factors: Vec<Interface>,
+}
+
+impl SimplifiedSchema for DirectoryAnalysis {
+    /// Generate a simplified schema for directory analysis
+    fn simplified_schema() -> serde_json::Value {
+        json!({
+            "type": "object",
+            "required": ["directory_path", "summary"],
+            "properties": {
+                "directory_path": {"type": "string"},
+                "summary": {"type": "string"},
+                "key_components": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "external_dependencies": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "public_interfaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "interface_type"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "interface_type": {"type": "string", "enum": ["Function", "Struct", "Trait", "Module", "Api", "Configuration", "DataModel"],},
+                            "description": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        })
+    }
+}
+
+impl SimplifiedSchema for ProjectAnalysis {
+    /// Generate a simplified schema for project analysis
+    fn simplified_schema() -> serde_json::Value {
+        json!({
+            "type": "object",
+            "required": ["project_overview", "architecture_summary"],
+            "properties": {
+                "project_overview": {"type": "string"},
+                "architecture_summary": {"type": "string"},
+                "core_technologies": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "main_interfaces": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "interface_type"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "interface_type": {"type": "string", "enum": ["Function", "Struct", "Trait", "Module", "Api", "Configuration", "DataModel"],},
+                            "description": {"type": "string"}
+                        }
+                    }
+                },
+                "development_considerations": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "extension_points": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "risk_factors": {
+                    "type": "array",
+                    "items": {
+                        "type": "object",
+                        "required": ["name", "interface_type"],
+                        "properties": {
+                            "name": {"type": "string"},
+                            "interface_type": {"type": "string", "enum": ["Function", "Struct", "Trait", "Module", "Api", "Configuration", "DataModel"],},
+                            "description": {"type": "string"}
+                        }
+                    }
+                }
+            }
+        })
+    }
 }
 
 #[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]

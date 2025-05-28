@@ -1,11 +1,11 @@
 pub mod exceptions;
 pub mod extract_json;
 pub mod models;
-use crate::llm_interface::exceptions::LlmError;
+use crate::{analysis::summary::SimplifiedSchema, llm_interface::exceptions::LlmError};
 use backoff::{ExponentialBackoff, backoff::Backoff};
 use extract_json::{extract_json_aggressively, extract_json_from_response};
 use llm::{
-    builder::LLMBuilder,
+    builder::{LLMBackend, LLMBuilder},
     chat::{ChatMessage, StructuredOutputFormat},
 };
 use schemars::{JsonSchema, schema_for};
@@ -140,7 +140,7 @@ impl LlmClient {
         user_prompt: &str,
     ) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
     {
         let default_config = RetryConfig::default();
         let retry_config = self.retry_config.as_ref().unwrap_or(&default_config);
@@ -198,14 +198,38 @@ impl LlmClient {
         user_prompt: &str,
     ) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
     {
         let schema = schema_for!(T);
-        let value_schema = serde_json::to_value(&schema)?;
+        let mut value_schema = serde_json::to_value(&schema)?;
+
+        let mut prompt = system_prompt.to_string();
+
+        match self.model.provider() {
+            LLMBackend::Google => {
+                value_schema = T::simplified_schema();
+            }
+            _ => {
+                prompt = format!(
+                    r#"{}
+CRITICAL INSTRUCTIONS:
+- You MUST respond with ONLY a valid JSON object
+- NO explanatory text before or after the JSON
+- NO markdown code blocks or formatting
+- NO comments or additional content
+- The JSON must exactly match this schema:
+```json
+{:?}
+```
+Any response that is not pure JSON will be rejected."#,
+                    system_prompt, value_schema
+                );
+            }
+        }
 
         let output_schema = StructuredOutputFormat {
             name: T::schema_name(),
-            schema: Some(value_schema.clone()),
+            schema: Some(value_schema),
             description: None,
             strict: Some(true),
         };
@@ -217,20 +241,7 @@ impl LlmClient {
             .max_tokens(self.max_tokens)
             .temperature(self.temperature)
             .stream(false)
-            .system(format!(
-                r#"{}
-CRITICAL INSTRUCTIONS:
-- You MUST respond with ONLY a valid JSON object
-- NO explanatory text before or after the JSON
-- NO markdown code blocks or formatting
-- NO comments or additional content
-- The JSON must exactly match this schema:
-```json
-{:?}
-``
-Any response that is not pure JSON will be rejected."#,
-                system_prompt, value_schema
-            ))
+            .system(prompt)
             .schema(output_schema);
 
         let llm = builder
@@ -333,7 +344,7 @@ impl<'a> LlmRequestBuilder<'a> {
     #[allow(dead_code)]
     pub async fn execute_structured<T>(self) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
     {
         self.client
             .get_structured_response(&self.system_prompt, &self.content)
@@ -348,7 +359,7 @@ impl<'a> LlmRequestBuilder<'a> {
     }
     pub async fn execute_structured_with_retry<T>(self) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
     {
         self.client
             .get_structured_response_with_retry(&self.system_prompt, &self.content)
@@ -369,6 +380,7 @@ mod tests {
     use dotenv::dotenv;
     use schemars::JsonSchema;
     use serde::{Deserialize, Serialize};
+    use serde_json::{Value, json};
 
     #[derive(Debug, Serialize, Deserialize, JsonSchema)]
     struct TaskResponse {
@@ -380,6 +392,20 @@ mod tests {
         message: String,
         #[schemars(description = "Confidence in your answer.")]
         confidence: f32,
+    }
+
+    impl SimplifiedSchema for TaskResponse {
+        fn simplified_schema() -> Value {
+            json!({
+                "type": "object",
+                "required": ["success", "message", "confidence"],
+                "properties": {
+                    "success": {"type": "boolean"},
+                    "message": {"type": "string"},
+                    "confidence": {"type": "number"}
+                }
+            })
+        }
     }
 
     #[tokio::test]

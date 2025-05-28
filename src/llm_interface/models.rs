@@ -49,9 +49,9 @@ pub enum ModelId {
     Gemini15Flash,
     #[serde(rename = "gemini-1.5-flash-8b")]
     Gemini15Flash8b,
-    #[serde(rename = "gemini-2.0-flash-exp")]
+    #[serde(rename = "gemini-2.0-flash")]
     Gemini20FlashExp,
-    #[serde(rename = "gemini-2.5-pro")]
+    #[serde(rename = "gemini-2.5-pro-preview-05-06")]
     Gemini25Pro,
     #[serde(rename = "gemini-2.5-flash")]
     Gemini25Flash,
