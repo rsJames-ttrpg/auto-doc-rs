@@ -149,7 +149,7 @@ impl MarkdownGenerator {
     /// Generate project-level overview markdown using Display impl
     async fn generate_project_overview(&self, analysis: &ProjectAnalysis) -> Result<()> {
         let content = analysis.to_string();
-        let output_path = self.config.output_dir.join("PROJECT_OVERVIEW.md");
+        let output_path = self.config.output_dir.join("README.md");
         fs::write(output_path, content).await?;
         Ok(())
     }
