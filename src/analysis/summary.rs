@@ -39,7 +39,7 @@ impl SimplifiedSchema for FileAnalysis {
     fn simplified_schema() -> serde_json::Value {
         json!({
             "type": "object",
-            "required": ["file_path", "summary", "external_dependencies"],
+            "required": ["file_path", "summary", "external_dependencies", "file_type", "public_interfaces"],
             "properties": {
                 "file_path": {"type": "string"},
                 "summary": {"type": "string"},
@@ -87,36 +87,15 @@ pub struct DirectoryAnalysis {
     pub public_interfaces: Vec<Interface>,
 }
 
-#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
-pub struct ProjectAnalysis {
-    #[schemars(
-        description = "Executive summary of what this software does and its primary value proposition"
-    )]
-    pub project_overview: String,
-    #[schemars(
-        description = "High-level description of how the system is structured and organized"
-    )]
-    pub architecture_summary: String,
-    #[schemars(description = "Primary technologies, frameworks, and significant dependencies")]
-    pub core_technologies: Vec<String>,
-    #[schemars(description = "Interfaces into the project")]
-    pub main_interfaces: Vec<Interface>,
-    #[schemars(description = "Key requirements for running/deploying this software")]
-    pub development_considerations: Vec<String>,
-    #[schemars(description = "Areas where the system is designed to be extended or customized")]
-    pub extension_points: Vec<String>,
-    #[schemars(description = "Potential technical risks or dependencies that could cause issues")]
-    pub risk_factors: Vec<Interface>,
-}
-
 impl SimplifiedSchema for DirectoryAnalysis {
     /// Generate a simplified schema for directory analysis
     fn simplified_schema() -> serde_json::Value {
         json!({
             "type": "object",
-            "required": ["directory_path", "summary"],
+            "required": ["directory_path", "summary", "depth_level", "key_components", "external_dependencies", "public_interfaces"],
             "properties": {
                 "directory_path": {"type": "string"},
+                "depth_level" : {"type": "integer"},
                 "summary": {"type": "string"},
                 "key_components": {
                     "type": "array",
@@ -143,12 +122,34 @@ impl SimplifiedSchema for DirectoryAnalysis {
     }
 }
 
+#[derive(Debug, Clone, Serialize, Deserialize, JsonSchema)]
+pub struct ProjectAnalysis {
+    #[schemars(
+        description = "Executive summary of what this software does and its primary value proposition"
+    )]
+    pub project_overview: String,
+    #[schemars(
+        description = "High-level description of how the system is structured and organized"
+    )]
+    pub architecture_summary: String,
+    #[schemars(description = "Primary technologies, frameworks, and significant dependencies")]
+    pub core_technologies: Vec<String>,
+    #[schemars(description = "Interfaces into the project")]
+    pub main_interfaces: Vec<Interface>,
+    #[schemars(description = "Key requirements for running/deploying this software")]
+    pub development_considerations: Vec<String>,
+    #[schemars(description = "Areas where the system is designed to be extended or customized")]
+    pub extension_points: Vec<String>,
+    #[schemars(description = "Potential technical risks or dependencies that could cause issues")]
+    pub risk_factors: Vec<Interface>,
+}
+
 impl SimplifiedSchema for ProjectAnalysis {
     /// Generate a simplified schema for project analysis
     fn simplified_schema() -> serde_json::Value {
         json!({
             "type": "object",
-            "required": ["project_overview", "architecture_summary"],
+            "required": ["project_overview", "architecture_summary", "core_technologies", "main_interfaces", "development_considerations", "extension_points", "risk_factors"],
             "properties": {
                 "project_overview": {"type": "string"},
                 "architecture_summary": {"type": "string"},

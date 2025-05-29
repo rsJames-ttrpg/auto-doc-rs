@@ -53,7 +53,7 @@ pub enum ModelId {
     Gemini20FlashExp,
     #[serde(rename = "gemini-2.5-pro-preview-05-06")]
     Gemini25Pro,
-    #[serde(rename = "gemini-2.5-flash")]
+    #[serde(rename = "gemini-2.5-flash-preview-05-20")]
     Gemini25Flash,
 
     // DeepSeek Models
