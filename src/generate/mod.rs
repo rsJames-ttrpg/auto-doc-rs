@@ -95,23 +95,20 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
         options: AnalysisCrawlOptions,
     ) -> Result<(Option<ProjectAnalysis>, Vec<ChildAnalysis>), AnalysisCrawlError> {
         let root_path = root_path.as_ref();
-        debug!("DEBUG: Starting analysis of: {}", root_path.display());
+        debug!("Starting analysis of: {}", root_path.display());
 
         // First, crawl the directory structure
         let file_tree = crawl_directory(root_path, options.crawl_options.clone())?;
 
         // Print what we found during crawling
-        debug!("DEBUG: File tree structure: {}", file_tree.tree_string());
+        debug!("File tree structure: {}", file_tree.tree_string());
 
         // Then analyze the structure
-        debug!("DEBUG: Starting analyze_file_tree...");
+        debug!("Starting analyze_file_tree...");
         let child_analyses = self.analyze_file_tree(&file_tree, &options).await?;
 
         // Debug what analyze_file_tree returned
-        debug!(
-            "DEBUG: analyze_file_tree returned {} items:",
-            child_analyses.len()
-        );
+        debug!("analyze_file_tree returned {} items:", child_analyses.len());
         for (i, child) in child_analyses.iter().enumerate() {
             match child {
                 ChildAnalysis::File(f) => {

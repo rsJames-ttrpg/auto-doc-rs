@@ -1,7 +1,11 @@
+use super::simplified_schema;
+
 #[derive(Debug, thiserror::Error)]
 pub enum LlmError {
     #[error("Schema serialization error: {0}")]
     SchemaSerialization(#[from] serde_json::Error),
+    #[error("Schema serialization error: {0}")]
+    SchemaSimplification(#[from] simplified_schema::ConversionError),
     #[error("LLM build error: {0}")]
     Build(String),
     #[error("Chat error: {0}")]

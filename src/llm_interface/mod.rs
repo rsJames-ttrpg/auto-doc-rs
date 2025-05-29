@@ -1,7 +1,8 @@
 pub mod exceptions;
 pub mod extract_json;
 pub mod models;
-use crate::{analysis::summary::SimplifiedSchema, llm_interface::exceptions::LlmError};
+mod simplified_schema;
+use crate::llm_interface::exceptions::LlmError;
 use backoff::{ExponentialBackoff, backoff::Backoff};
 use extract_json::{extract_json_aggressively, extract_json_from_response};
 use llm::{
@@ -10,6 +11,7 @@ use llm::{
 };
 use schemars::{JsonSchema, schema_for};
 use serde::{Deserialize, Serialize, de::DeserializeOwned};
+use simplified_schema::{JsonSchemaConverter, SimplifiedSchema as SimpleSchema};
 use std::time::Duration;
 use tokio::time::sleep;
 use tracing::{debug, error};
@@ -140,7 +142,7 @@ impl LlmClient {
         user_prompt: &str,
     ) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
     {
         let default_config = RetryConfig::default();
         let retry_config = self.retry_config.as_ref().unwrap_or(&default_config);
@@ -198,17 +200,23 @@ impl LlmClient {
         user_prompt: &str,
     ) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
     {
         let schema = schema_for!(T);
         let mut value_schema = serde_json::to_value(&schema)?;
 
         let mut prompt = system_prompt.to_string();
 
-        match self.model.provider() {
-            LLMBackend::Google => {
-                value_schema = T::simplified_schema();
+        let simplified_schema: SimpleSchema = match JsonSchemaConverter::convert(&value_schema) {
+            Ok(schema) => schema,
+            Err(e) => {
+                error!("{}", value_schema);
+                return Err(e.into());
             }
+        };
+        value_schema = serde_json::to_value(simplified_schema)?;
+        match self.model.provider() {
+            LLMBackend::Google => {}
             _ => {
                 prompt = format!(
                     r#"{}
@@ -344,7 +352,7 @@ impl<'a> LlmRequestBuilder<'a> {
     #[allow(dead_code)]
     pub async fn execute_structured<T>(self) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
     {
         self.client
             .get_structured_response(&self.system_prompt, &self.content)
@@ -359,7 +367,7 @@ impl<'a> LlmRequestBuilder<'a> {
     }
     pub async fn execute_structured_with_retry<T>(self) -> Result<T, LlmError>
     where
-        T: JsonSchema + Serialize + SimplifiedSchema + for<'de> Deserialize<'de>,
+        T: JsonSchema + Serialize + for<'de> Deserialize<'de>,
     {
         self.client
             .get_structured_response_with_retry(&self.system_prompt, &self.content)
@@ -380,7 +388,6 @@ mod tests {
     use dotenv::dotenv;
     use schemars::JsonSchema;
     use serde::{Deserialize, Serialize};
-    use serde_json::{Value, json};
 
     #[derive(Debug, Serialize, Deserialize, JsonSchema)]
     struct TaskResponse {
@@ -392,20 +399,6 @@ mod tests {
         message: String,
         #[schemars(description = "Confidence in your answer.")]
         confidence: f32,
-    }
-
-    impl SimplifiedSchema for TaskResponse {
-        fn simplified_schema() -> Value {
-            json!({
-                "type": "object",
-                "required": ["success", "message", "confidence"],
-                "properties": {
-                    "success": {"type": "boolean"},
-                    "message": {"type": "string"},
-                    "confidence": {"type": "number"}
-                }
-            })
-        }
     }
 
     #[tokio::test]

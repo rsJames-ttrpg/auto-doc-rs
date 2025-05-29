@@ -356,7 +356,7 @@ api_key = "test"
         "git_mode": true
     },
     "llm_settings": [
-        {"model": "claude-3-5-haiku-20241022", "api_key": "test"}
+        {"model": "claude-3-5-haiku-latest", "api_key": "test"}
     ]
 }"#;
 

@@ -29,13 +29,13 @@ pub enum ModelId {
     Gpt35Turbo,
 
     // Anthropic Claude Models
-    #[serde(rename = "claude-3-5-sonnet-20241022")]
+    #[serde(rename = "claude-3-5-sonnet-latest")]
     Claude35Sonnet,
-    #[serde(rename = "claude-3-5-haiku-20241022")]
+    #[serde(rename = "claude-3-5-haiku-latest")]
     Claude35Haiku,
     #[serde(rename = "claude-3-opus-20240229")]
     Claude3Opus,
-    #[serde(rename = "claude-3-7-sonnet-20250224")]
+    #[serde(rename = "claude-3-7-sonnet-latest")]
     Claude37Sonnet,
     #[serde(rename = "claude-sonnet-4-20250514")]
     Claude4Sonnet,
