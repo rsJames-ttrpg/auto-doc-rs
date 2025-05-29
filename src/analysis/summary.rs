@@ -92,12 +92,16 @@ impl SimplifiedSchema for DirectoryAnalysis {
     fn simplified_schema() -> serde_json::Value {
         json!({
             "type": "object",
-            "required": ["directory_path", "summary", "depth_level", "key_components", "external_dependencies", "public_interfaces"],
+            "required": ["directory_path", "summary", "child_summaries",  "depth_level", "key_components", "external_dependencies", "public_interfaces"],
             "properties": {
                 "directory_path": {"type": "string"},
                 "depth_level" : {"type": "integer"},
                 "summary": {"type": "string"},
                 "key_components": {
+                    "type": "array",
+                    "items": {"type": "string"}
+                },
+                "child_summaries": {
                     "type": "array",
                     "items": {"type": "string"}
                 },
