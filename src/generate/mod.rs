@@ -5,7 +5,7 @@ use tracing::{debug, error, warn};
 
 use crate::analysis::summary::{
     AnalysisAudience, AnalysisContext, AnalysisDepth, AnalysisError, ChildAnalysis, FileAnalysis,
-    LlmAnalyzer, ProjectAnalysis, ProjectType,
+    LlmAnalyser, ProjectAnalysis, ProjectType,
 };
 use crate::crawler::file::{CrawlError, CrawlOptions, FileNode, crawl_directory};
 
@@ -79,13 +79,13 @@ pub enum AnalysisCrawlError {
     Join(#[from] tokio::task::JoinError),
 }
 
-pub struct AnalysisCrawler<A: LlmAnalyzer + Clone + 'static> {
-    analyzer: A,
+pub struct AnalysisCrawler<A: LlmAnalyser + Clone + 'static> {
+    analyser: A,
 }
 
-impl<A: LlmAnalyzer> AnalysisCrawler<A> {
-    pub fn new(analyzer: A) -> Self {
-        Self { analyzer }
+impl<A: LlmAnalyser> AnalysisCrawler<A> {
+    pub fn new(analyser: A) -> Self {
+        Self { analyser }
     }
 
     /// Crawl and analyze a project directory
@@ -127,7 +127,7 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
 
         // Finally, synthesize into project analysis
         let project_analysis = match self
-            .analyzer
+            .analyser
             .analyze_project(root_path, &child_analyses, &options.analysis_context)
             .await
         {
@@ -196,7 +196,7 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
                                     child_analyses.extend(sub_analyses.clone());
                                     // Create directory analysis for this subdirectory
                                     match self
-                                        .analyzer
+                                        .analyser
                                         .analyze_directory(
                                             child.path(),
                                             &sub_analyses,
@@ -226,7 +226,7 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
     }
 
     async fn analyze_single_file_static(
-        analyzer: &A,
+        analyser: &A,
         file_node: &FileNode,
         options: &AnalysisCrawlOptions,
     ) -> Result<Option<FileAnalysis>, AnalysisCrawlError> {
@@ -243,7 +243,7 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
             };
 
             // Analyze with LLM
-            let analysis = analyzer
+            let analysis = analyser
                 .analyze_file(path, &content, &options.analysis_context)
                 .await?;
 
@@ -258,7 +258,7 @@ impl<A: LlmAnalyzer> AnalysisCrawler<A> {
         file_node: &FileNode,
         options: &AnalysisCrawlOptions,
     ) -> Result<Option<FileAnalysis>, AnalysisCrawlError> {
-        Self::analyze_single_file_static(&self.analyzer, file_node, options).await
+        Self::analyze_single_file_static(&self.analyser, file_node, options).await
     }
 
     fn should_analyze_file(&self, file_node: &FileNode, options: &AnalysisCrawlOptions) -> bool {
@@ -399,15 +399,15 @@ mod tests {
     use tempfile::TempDir;
 
     mock! {
-        TestAnalyzer {}
+        TestAnalyser {}
 
 
-        impl Clone for TestAnalyzer {
+        impl Clone for TestAnalyser {
             fn clone(&self) -> Self;
         }
 
         #[async_trait::async_trait]
-        impl LlmAnalyzer for TestAnalyzer {
+        impl LlmAnalyser for TestAnalyser {
             async fn analyze_file(
                 &self,
                 file_path: &Path,
@@ -442,8 +442,8 @@ mod tests {
         fs::write(temp_path.join("Cargo.toml"), "[package]\nname = \"test\"").unwrap();
         fs::write(temp_path.join("README.md"), "# Test Project").unwrap();
 
-        let analyzer = MockTestAnalyzer::new();
-        let crawler = AnalysisCrawler::new(analyzer);
+        let analyser = MockTestAnalyser::new();
+        let crawler = AnalysisCrawler::new(analyser);
 
         let preview = crawler
             .preview_analysis(temp_path, &AnalysisCrawlOptions::default())

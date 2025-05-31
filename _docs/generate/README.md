@@ -34,6 +34,6 @@ The generate directory provides the core orchestration layer for automated code 
 - **AnalysisCrawler** (`📦 Struct`)
   Main orchestration component that coordinates file system traversal with LLM-based code analysis for project-wide analysis workflows
 - **AnalysisCrawlOptions** (`⚙️ Configuration`)
-  Configuration interface for customizing analysis behavior including file filtering, size limits, and analysis context parameters
+  Configuration interface for customizing analysis behaviour including file filtering, size limits, and analysis context parameters
 - **preview_analysis** (`🔧 Function`)
   Analysis planning interface that provides statistics and validation before executing full analysis, enabling cost estimation and workflow optimization

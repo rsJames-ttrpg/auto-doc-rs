@@ -10,7 +10,7 @@ This file defines the configuration system for an application that processes fil
 - `std::io`
 - `std::path::PathBuf`
 - `crate::llm_interface::models::ModelId`
-- `crate::llm_interface::pool::Behavior`
+- `crate::llm_interface::pool::behaviour`
 - `clap::ValueEnum`
 - `config::Config`
 - `config::ConfigError`
@@ -25,7 +25,7 @@ This file defines the configuration system for an application that processes fil
 - **CrawlOptions** (`📦 Struct`)
   Configuration struct for file crawling options including depth limits, pattern matching, and git mode settings
 - **LlmSettings** (`📦 Struct`)
-  Configuration struct for LLM behavior including retry policies, timeout settings, and model configurations
+  Configuration struct for LLM behaviour including retry policies, timeout settings, and model configurations
 - **LlmModel** (`📦 Struct`)
   Configuration struct for individual LLM model settings including API keys, token limits, and temperature
 - **Settings** (`📦 Struct`)

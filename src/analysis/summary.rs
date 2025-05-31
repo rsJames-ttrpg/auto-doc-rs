@@ -87,7 +87,7 @@ pub enum InterfaceType {
     Function,
     #[schemars(description = "A data structure or type definition")]
     Struct,
-    #[schemars(description = "A trait defining shared behavior")]
+    #[schemars(description = "A trait defining shared behaviour")]
     Trait,
     #[schemars(description = "A module or namespace")]
     Module,
@@ -110,7 +110,7 @@ pub enum AnalysisError {
 
 // Main trait for LLM interactions
 #[async_trait]
-pub trait LlmAnalyzer: Send + Sync + Clone {
+pub trait LlmAnalyser: Send + Sync + Clone {
     /// Analyze a single file and return structured analysis
     async fn analyze_file(
         &self,

@@ -3,7 +3,7 @@
 **Type:** `rs`
 
 ## Summary
-This file implements a builder pattern for constructing LlmPool instances, providing a fluent API to configure pool behavior and add LLM clients with priorities. It includes validation to ensure pools are built with required behavior and at least one client, with comprehensive error handling for invalid configurations.
+This file implements a builder pattern for constructing LlmPool instances, providing a fluent API to configure pool behaviour and add LLM clients with priorities. It includes validation to ensure pools are built with required behaviour and at least one client, with comprehensive error handling for invalid configurations.
 
 ## 📚 External Dependencies
 - `std::fmt`
@@ -11,11 +11,11 @@ This file implements a builder pattern for constructing LlmPool instances, provi
 
 ## 🔌 Public Interfaces
 - **LlmPoolBuilder** (`📦 Struct`)
-  Builder pattern struct for constructing LlmPool instances with configurable behavior and client members
+  Builder pattern struct for constructing LlmPool instances with configurable behaviour and client members
 - **new** (`🔧 Function`)
-  Creates a new LlmPoolBuilder instance with empty members and no behavior set
-- **behavior** (`🔧 Function`)
-  Sets the pool behavior (Failover, Distribute, etc.) for the LlmPool being built
+  Creates a new LlmPoolBuilder instance with empty members and no behaviour set
+- **behaviour** (`🔧 Function`)
+  Sets the pool behaviour (Failover, Distribute, etc.) for the LlmPool being built
 - **add_client** (`🔧 Function`)
   Adds an LlmClient to the pool with default priority of 0
 - **add_client_with_priority** (`🔧 Function`)
@@ -29,10 +29,10 @@ This file implements a builder pattern for constructing LlmPool instances, provi
 - **add_members** (`🔧 Function`)
   Adds multiple PoolMembers directly to the pool
 - **build** (`🔧 Function`)
-  Builds the LlmPool, returning an error if no behavior is set or no clients are added
-- **build_with_default_behavior** (`🔧 Function`)
-  Builds the LlmPool using Failover as default behavior if none is set
+  Builds the LlmPool, returning an error if no behaviour is set or no clients are added
+- **build_with_default_behaviour** (`🔧 Function`)
+  Builds the LlmPool using Failover as default behaviour if none is set
 - **LlmPoolBuilderError** (`🗄️ Data Model`)
-  Error enum for builder validation failures including MissingBehavior and NoClients variants
+  Error enum for builder validation failures including Missingbehaviour and NoClients variants
 - **builder** (`🔧 Function`)
   Convenience method on LlmPool to create a new LlmPoolBuilder instance

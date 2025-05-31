@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::llm_interface::{models::ModelId, pool::Behavior};
+use crate::llm_interface::{models::ModelId, pool::Behaviour};
 use clap::ValueEnum;
 use config::{Config, ConfigError, Environment};
 use serde::{Deserialize, Serialize};
@@ -22,7 +22,7 @@ pub struct CrawlOptions {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct LlmSettings {
-    pub behaviour: Behavior,
+    pub behaviour: Behaviour,
     pub max_retries: u32,
     pub initial_interval_ms: u32,
     pub max_interval_s: u32,
@@ -39,7 +39,7 @@ impl Default for LlmSettings {
             max_interval_s: 60,
             multiplier: 2.0,
             max_elapsed_time_s: 300,
-            behaviour: Behavior::Failover,
+            behaviour: Behaviour::Failover,
             models: vec![LlmModel::default()],
         }
     }
@@ -241,7 +241,7 @@ mod tests {
                 git_mode: false,
             },
             llm_settings: LlmSettings {
-                behaviour: Behavior::Failover,
+                behaviour: Behaviour::Failover,
                 models: vec![
                     LlmModel {
                         model: ModelId::Llama32,

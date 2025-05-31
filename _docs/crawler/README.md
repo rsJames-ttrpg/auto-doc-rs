@@ -29,7 +29,7 @@ The crawler directory implements a comprehensive file system traversal and analy
 - **crawl_directory** (`🔧 Function`)
   Main entry point for initiating file system crawls with configurable filtering and depth control
 - **CrawlOptions** (`⚙️ Configuration`)
-  Configuration interface for customizing crawler behavior including pattern matching, depth limits, and file filtering
+  Configuration interface for customizing crawler behaviour including pattern matching, depth limits, and file filtering
 - **FileNodeIterator** (`📦 Struct`)
   Iterator interface providing depth-first traversal over crawled file system trees
 - **CrawlResult** (`🗄️ Data Model`)

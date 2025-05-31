@@ -19,7 +19,7 @@ This file implements a file system crawler that builds a tree representation of 
 - **FileNode** (`🗄️ Data Model`)
   Enum representing either a file or directory node in a file system tree, with metadata like size, path, and children for directories
 - **CrawlOptions** (`⚙️ Configuration`)
-  Configuration struct for controlling file system crawling behavior including depth limits, symlink following, hidden files, and glob patterns
+  Configuration struct for controlling file system crawling behaviour including depth limits, symlink following, hidden files, and glob patterns
 - **CrawlResult** (`🗄️ Data Model`)
   Type alias for Result<FileNode, CrawlError> representing the outcome of a crawl operation
 - **CrawlError** (`🗄️ Data Model`)

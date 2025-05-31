@@ -23,7 +23,7 @@ This file implements the core LLM client interface that provides structured and 
 - **builder** (`📁 Module`)
   Public module for builder pattern implementations
 - **RetryConfig** (`📦 Struct`)
-  Configuration struct for retry behavior including max retries, intervals, and backoff settings
+  Configuration struct for retry behaviour including max retries, intervals, and backoff settings
 - **LlmClient** (`📦 Struct`)
   Main client struct for interacting with LLM providers, supporting structured and simple responses with retry capabilities
 - **LlmRequestBuilder** (`📦 Struct`)
@@ -31,7 +31,7 @@ This file implements the core LLM client interface that provides structured and 
 - **new** (`🔧 Function`)
   Constructor for LlmClient that accepts model, API key, max tokens, and temperature parameters
 - **with_retry_config** (`🔧 Function`)
-  Method to configure retry behavior for the LlmClient
+  Method to configure retry behaviour for the LlmClient
 - **get_structured_response** (`🔧 Function`)
   Async method to get structured JSON responses from LLM based on JSON schema
 - **get_structured_response_with_retry** (`🔧 Function`)

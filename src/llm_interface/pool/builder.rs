@@ -1,11 +1,11 @@
 #![allow(dead_code)]
-use super::{Behavior, LlmPool, PoolMember};
+use super::{Behaviour, LlmPool, PoolMember};
 use crate::llm_interface::client::LlmClient;
 
 /// Builder for constructing LlmPool instances
 pub struct LlmPoolBuilder {
     members: Vec<PoolMember>,
-    behavior: Option<Behavior>,
+    behaviour: Option<Behaviour>,
 }
 
 impl LlmPoolBuilder {
@@ -13,13 +13,13 @@ impl LlmPoolBuilder {
     pub fn new() -> Self {
         Self {
             members: Vec::new(),
-            behavior: None,
+            behaviour: None,
         }
     }
 
-    /// Set the pool behavior
-    pub fn behavior(mut self, behavior: Behavior) -> Self {
-        self.behavior = Some(behavior);
+    /// Set the pool behaviour
+    pub fn behaviour(mut self, behaviour: Behaviour) -> Self {
+        self.behaviour = Some(behaviour);
         self
     }
 
@@ -92,27 +92,29 @@ impl LlmPoolBuilder {
     ///
     /// # Errors
     /// Returns an error if:
-    /// - No behavior is set
+    /// - No behaviour is set
     /// - No clients are added
     pub fn build(self) -> Result<LlmPool, LlmPoolBuilderError> {
-        let behavior = self.behavior.ok_or(LlmPoolBuilderError::MissingBehavior)?;
+        let behaviour = self
+            .behaviour
+            .ok_or(LlmPoolBuilderError::Missingbehaviour)?;
 
         if self.members.is_empty() {
             return Err(LlmPoolBuilderError::NoClients);
         }
 
-        Ok(LlmPool::new(self.members, behavior))
+        Ok(LlmPool::new(self.members, behaviour))
     }
 
-    /// Build the LlmPool with a default behavior if none is set
-    /// Uses `Behavior::Failover` as the default
-    pub fn build_with_default_behavior(self) -> Result<LlmPool, LlmPoolBuilderError> {
+    /// Build the LlmPool with a default behaviour if none is set
+    /// Uses `behaviour::Failover` as the default
+    pub fn build_with_default_behaviour(self) -> Result<LlmPool, LlmPoolBuilderError> {
         if self.members.is_empty() {
             return Err(LlmPoolBuilderError::NoClients);
         }
 
-        let behavior = self.behavior.unwrap_or(Behavior::Failover);
-        Ok(LlmPool::new(self.members, behavior))
+        let behaviour = self.behaviour.unwrap_or(Behaviour::Failover);
+        Ok(LlmPool::new(self.members, behaviour))
     }
 }
 
@@ -125,8 +127,8 @@ impl Default for LlmPoolBuilder {
 /// Errors that can occur when building an LlmPool
 #[derive(Debug, Clone, PartialEq)]
 pub enum LlmPoolBuilderError {
-    /// No behavior was specified
-    MissingBehavior,
+    /// No behaviour was specified
+    Missingbehaviour,
     /// No clients were added to the pool
     NoClients,
 }
@@ -134,8 +136,8 @@ pub enum LlmPoolBuilderError {
 impl std::fmt::Display for LlmPoolBuilderError {
     fn fmt(&self, f: &mut std::fmt::Formatter<'_>) -> std::fmt::Result {
         match self {
-            LlmPoolBuilderError::MissingBehavior => {
-                write!(f, "Pool behavior must be specified")
+            LlmPoolBuilderError::Missingbehaviour => {
+                write!(f, "Pool behaviour must be specified")
             }
             LlmPoolBuilderError::NoClients => {
                 write!(f, "At least one client must be added to the pool")
@@ -160,19 +162,19 @@ mod tests {
 
     #[test]
     fn test_builder_errors() {
-        // Test missing behavior
+        // Test missing behaviour
         let result = LlmPool::builder().build();
-        assert!(matches!(result, Err(LlmPoolBuilderError::MissingBehavior)));
+        assert!(matches!(result, Err(LlmPoolBuilderError::Missingbehaviour)));
 
         // Test no clients
-        let result = LlmPool::builder().behavior(Behavior::Distribute).build();
+        let result = LlmPool::builder().behaviour(Behaviour::Distribute).build();
         assert!(matches!(result, Err(LlmPoolBuilderError::NoClients)));
     }
 
     #[test]
-    fn test_default_behavior_builder() {
-        // Test build_with_default_behavior with no clients
-        let result = LlmPool::builder().build_with_default_behavior();
+    fn test_default_behaviour_builder() {
+        // Test build_with_default_behaviour with no clients
+        let result = LlmPool::builder().build_with_default_behaviour();
         assert!(matches!(result, Err(LlmPoolBuilderError::NoClients)));
     }
 }

@@ -14,7 +14,7 @@ This file implements a fluent builder pattern for constructing LlmClient instanc
 - **LlmClientBuilder** (`📦 Struct`)
   Builder struct for constructing LlmClient instances with fluent configuration methods including model, API key, max tokens, temperature, and retry settings
 - **RetryConfigBuilder** (`📦 Struct`)
-  Builder struct for configuring retry behavior with settings like max retries, intervals, multipliers, and elapsed time limits
+  Builder struct for configuring retry behaviour with settings like max retries, intervals, multipliers, and elapsed time limits
 - **LlmClientBuilderError** (`🗄️ Data Model`)
   Error enum representing possible errors during LlmClient construction, currently includes MissingModel variant
 - **new** (`🔧 Function`)

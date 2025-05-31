@@ -15,7 +15,7 @@ use std::{
 
 #[derive(Clone, Debug, Deserialize, Serialize, PartialEq)]
 #[serde(rename_all = "lowercase")]
-pub enum Behavior {
+pub enum Behaviour {
     Distribute,
     Failover,
     Combination,
@@ -41,7 +41,7 @@ impl PoolMember {
 pub struct LlmPool {
     clients: HashMap<u64, PoolMember>,
     client_order: Vec<u64>,
-    pub behavior: Behavior,
+    pub behaviour: Behaviour,
     round_robin_index: Arc<AtomicUsize>,
 }
 
@@ -51,7 +51,7 @@ impl Clone for LlmPool {
         Self {
             clients: self.clients.clone(),
             client_order: self.client_order.clone(),
-            behavior: self.behavior.clone(),
+            behaviour: self.behaviour.clone(),
             round_robin_index: Arc::new(AtomicUsize::new(
                 self.round_robin_index.load(Ordering::Relaxed),
             )),
@@ -60,7 +60,7 @@ impl Clone for LlmPool {
 }
 
 impl LlmPool {
-    pub fn new(clients: Vec<PoolMember>, behavior: Behavior) -> Self {
+    pub fn new(clients: Vec<PoolMember>, behaviour: Behaviour) -> Self {
         let mut client_map = HashMap::new();
         let mut client_order = Vec::new();
 
@@ -73,21 +73,21 @@ impl LlmPool {
         Self {
             clients: client_map,
             client_order,
-            behavior,
+            behaviour,
             round_robin_index: Arc::new(AtomicUsize::new(0)),
         }
     }
 
-    /// Returns a client based on behavior
+    /// Returns a client based on behaviour
     pub fn get_client(&self) -> Arc<LlmClient> {
         if self.clients.is_empty() {
             panic!("No Configured Clients");
         }
 
-        match self.behavior {
-            Behavior::Distribute => self.get_distribute_client(),
-            Behavior::Failover => self.get_failover_client(),
-            Behavior::Combination => self.get_combination_client(),
+        match self.behaviour {
+            Behaviour::Distribute => self.get_distribute_client(),
+            Behaviour::Failover => self.get_failover_client(),
+            Behaviour::Combination => self.get_combination_client(),
         }
     }
 
@@ -218,7 +218,7 @@ impl LlmPool {
         self.clients.is_empty()
     }
 
-    /// Executes the request with the pool behavior
+    /// Executes the request with the pool behaviour
     pub async fn execute_request<T, F, Fut>(
         &self,
         request_fn: F,
@@ -227,8 +227,8 @@ impl LlmPool {
         F: Fn(Arc<LlmClient>) -> Fut,
         Fut: std::future::Future<Output = Result<T, Box<dyn std::error::Error + Send + Sync>>>,
     {
-        match self.behavior {
-            Behavior::Distribute => {
+        match self.behaviour {
+            Behaviour::Distribute => {
                 let client = self.get_client();
                 request_fn(client).await
             }
@@ -299,7 +299,7 @@ mod tests {
     #[test]
     #[should_panic(expected = "No Configured Clients")]
     fn test_empty_pool_panics() {
-        let pool = LlmPool::new(vec![], Behavior::Distribute);
+        let pool = LlmPool::new(vec![], Behaviour::Distribute);
         pool.get_client();
     }
 
@@ -309,7 +309,7 @@ mod tests {
             create_pool_member("key1", ModelId::Gpt4o, 1),
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
         ];
-        let pool = LlmPool::new(members, Behavior::Distribute);
+        let pool = LlmPool::new(members, Behaviour::Distribute);
 
         assert_eq!(pool.len(), 2);
         assert!(!pool.is_empty());
@@ -319,7 +319,7 @@ mod tests {
     #[test]
     fn test_distribute_single_client() {
         let members = vec![create_pool_member("key1", ModelId::Gpt4o, 1)];
-        let pool = LlmPool::new(members, Behavior::Distribute);
+        let pool = LlmPool::new(members, Behaviour::Distribute);
 
         let client1 = pool.get_client();
         let client2 = pool.get_client();
@@ -334,7 +334,7 @@ mod tests {
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
             create_pool_member("key3", ModelId::Gemini15Pro, 3),
         ];
-        let pool = LlmPool::new(members, Behavior::Distribute);
+        let pool = LlmPool::new(members, Behaviour::Distribute);
 
         let client1 = pool.get_client();
         let client2 = pool.get_client();
@@ -359,7 +359,7 @@ mod tests {
             create_pool_member("key1", ModelId::Claude35Sonnet, 1), // High priority
             create_pool_member("key2", ModelId::Gemini15Pro, 2), // Medium priority
         ];
-        let pool = LlmPool::new(members, Behavior::Failover);
+        let pool = LlmPool::new(members, Behaviour::Failover);
 
         let client = pool.get_client();
         // Should return the client with priority 1 (highest priority)
@@ -375,7 +375,7 @@ mod tests {
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),        // Medium priority
             create_pool_member("key3", ModelId::Gemini15Pro, 3),           // Low priority
         ];
-        let pool = LlmPool::new(members, Behavior::Failover);
+        let pool = LlmPool::new(members, Behaviour::Failover);
 
         let client = pool.get_client();
         let expected_client = create_test_client("key2", ModelId::Claude35Sonnet);
@@ -389,7 +389,7 @@ mod tests {
             create_pool_member_with_error("key1", ModelId::Gpt4o, 1, old_error),
             create_pool_member("key2", ModelId::Gemini15Pro, 3),
         ];
-        let pool = LlmPool::new(members, Behavior::Failover);
+        let pool = LlmPool::new(members, Behaviour::Failover);
 
         let client = pool.get_client();
         let expected_client = create_test_client("key1", ModelId::Gpt4o);
@@ -403,7 +403,7 @@ mod tests {
             create_pool_member_with_error("key1", ModelId::Gpt4o, 1, now),
             create_pool_member_with_error("key2", ModelId::Gemini15Pro, 3, now),
         ];
-        let pool = LlmPool::new(members, Behavior::Failover);
+        let pool = LlmPool::new(members, Behaviour::Failover);
 
         let client = pool.get_client();
         let expected_client = create_test_client("key1", ModelId::Gpt4o);
@@ -417,7 +417,7 @@ mod tests {
             create_pool_member("key2", ModelId::Claude35Sonnet, 1),
             create_pool_member("key3", ModelId::Gemini15Pro, 2),
         ];
-        let pool = LlmPool::new(members, Behavior::Combination);
+        let pool = LlmPool::new(members, Behaviour::Combination);
 
         // Should only use high priority clients (priority 1)
         let client1 = pool.get_client();
@@ -452,7 +452,7 @@ mod tests {
             create_pool_member("key3", ModelId::Gemini15Pro, 2),
             create_pool_member("key4", ModelId::DeepseekChat, 2),
         ];
-        let pool = LlmPool::new(members, Behavior::Combination);
+        let pool = LlmPool::new(members, Behaviour::Combination);
 
         let client1 = pool.get_client();
         let client2 = pool.get_client();
@@ -475,7 +475,7 @@ mod tests {
             create_pool_member("key1", ModelId::Gpt4o, 1),
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
         ];
-        let mut pool = LlmPool::new(members, Behavior::Failover);
+        let mut pool = LlmPool::new(members, Behaviour::Failover);
 
         let client1 = pool.get_client();
         let expected_id = client_id(&create_test_client("key1", ModelId::Gpt4o));
@@ -497,7 +497,7 @@ mod tests {
             create_pool_member_with_error("key1", ModelId::Gpt4o, 1, now),
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
         ];
-        let mut pool = LlmPool::new(members, Behavior::Failover);
+        let mut pool = LlmPool::new(members, Behaviour::Failover);
 
         // Should return client2 due to client1 being errored
         let client = pool.get_client();
@@ -517,7 +517,7 @@ mod tests {
     #[test]
     fn test_add_client() {
         let members = vec![create_pool_member("key1", ModelId::Gpt4o, 1)];
-        let mut pool = LlmPool::new(members, Behavior::Distribute);
+        let mut pool = LlmPool::new(members, Behaviour::Distribute);
 
         assert_eq!(pool.len(), 1);
 
@@ -534,7 +534,7 @@ mod tests {
             create_pool_member("key1", ModelId::Gpt4o, 1),
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
         ];
-        let mut pool = LlmPool::new(members, Behavior::Distribute);
+        let mut pool = LlmPool::new(members, Behaviour::Distribute);
 
         assert_eq!(pool.len(), 2);
 
@@ -552,7 +552,7 @@ mod tests {
             create_pool_member("key1", ModelId::Gpt4o, 1),
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
         ];
-        let pool = LlmPool::new(members, Behavior::Distribute);
+        let pool = LlmPool::new(members, Behaviour::Distribute);
 
         let client1 = pool.get_client();
         let client2 = pool.get_client();
@@ -572,7 +572,7 @@ mod tests {
             create_pool_member("key1", ModelId::Gpt4o, 1),
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
         ];
-        let pool = LlmPool::new(members, Behavior::Distribute);
+        let pool = LlmPool::new(members, Behaviour::Distribute);
 
         // Advance the round robin
         let _ = pool.get_client();
@@ -593,7 +593,7 @@ mod tests {
             create_pool_member("key2", ModelId::Claude35Sonnet, 2),
             create_pool_member("key3", ModelId::Gemini15Pro, 3),
         ];
-        let mut pool = LlmPool::new(members, Behavior::Distribute);
+        let mut pool = LlmPool::new(members, Behaviour::Distribute);
 
         let test_client = create_test_client("key2", ModelId::Claude35Sonnet);
         let client_id = test_client.id();
@@ -621,7 +621,7 @@ mod tests {
             create_pool_member("google_key", ModelId::Gemini15Pro, 1),
             create_pool_member("deepseek_key", ModelId::DeepseekChat, 1),
         ];
-        let pool = LlmPool::new(members, Behavior::Combination);
+        let pool = LlmPool::new(members, Behaviour::Combination);
 
         // All have same priority, so should distribute among all
         let mut seen_providers = std::collections::HashSet::new();

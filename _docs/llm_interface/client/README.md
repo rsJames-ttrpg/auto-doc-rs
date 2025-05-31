@@ -36,13 +36,13 @@ This directory implements the core LLM client abstraction layer that provides a 
 
 ## 🔌 Public Interfaces
 - **LlmClient** (`📦 Struct`)
-  Primary client interface for LLM interactions supporting both structured JSON responses and simple text responses with configurable retry behavior and authentication
+  Primary client interface for LLM interactions supporting both structured JSON responses and simple text responses with configurable retry behaviour and authentication
 - **LlmClientBuilder** (`📦 Struct`)
   Fluent builder pattern for constructing LlmClient instances with configurable model, API key, tokens, temperature, and retry settings
 - **LlmAnalyzer** (`🎯 Trait`)
   Analysis trait implementation that enables the client to perform structured code analysis on files, directories, and entire projects using LLM-based prompts
 - **RetryConfig** (`📦 Struct`)
-  Configuration interface for retry behavior including maximum retries, intervals, backoff multipliers, and timeout settings
+  Configuration interface for retry behaviour including maximum retries, intervals, backoff multipliers, and timeout settings
 - **get_structured_response** (`🔧 Function`)
   Primary method for obtaining structured JSON responses from LLM providers based on JSON schema validation with optional retry logic
 - **get_simple_response** (`🔧 Function`)

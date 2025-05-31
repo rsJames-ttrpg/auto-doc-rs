@@ -49,7 +49,7 @@ This directory provides a comprehensive abstraction layer for interacting with m
 
 ## 🔌 Public Interfaces
 - **LlmClient** (`📦 Struct`)
-  Primary client for LLM interactions supporting structured JSON responses, simple text responses, and configurable retry behavior with authentication
+  Primary client for LLM interactions supporting structured JSON responses, simple text responses, and configurable retry behaviour with authentication
 - **LlmPool** (`📦 Struct`)
   Multi-client pool with load balancing strategies (distribute, failover, combination), error tracking, and automatic retry logic for resilient LLM operations
 - **ModelId** (`🗄️ Data Model`)

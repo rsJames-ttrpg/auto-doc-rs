@@ -1,2 +1,12 @@
 {
+    "cSpell.words": [
+        "analyser",
+        "autodoc",
+        "Behaviour",
+        "cooldown",
+        "deepseek",
+        "schemars",
+        "serde",
+        "thiserror"
+    ]
 }

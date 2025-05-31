@@ -46,7 +46,7 @@ The system follows a modular architecture with clear separation of concerns: a f
 - Additional output formats beyond markdown through new generator implementations
 - Enhanced file filtering and crawling strategies via CrawlOptions configuration
 - Custom analysis depth and audience targeting through AnalysisContext
-- Pool behavior strategies for different load balancing and failover patterns
+- Pool behaviour strategies for different load balancing and failover patterns
 - Configuration format extensions supporting additional serialization formats
 
 ## ⚠️ Risk Factors

@@ -6,14 +6,14 @@ use crate::analysis::{
     prompt::PromptTemplates,
     summary::{
         AnalysisContext, AnalysisError, ChildAnalysis, DirectoryAnalysis, FileAnalysis,
-        LlmAnalyzer, ProjectAnalysis,
+        LlmAnalyser, ProjectAnalysis,
     },
 };
 
 use super::LlmClient;
 
 #[async_trait]
-impl LlmAnalyzer for LlmClient {
+impl LlmAnalyser for LlmClient {
     async fn analyze_file(
         &self,
         file_path: &Path,
