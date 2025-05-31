@@ -3,24 +3,27 @@
 **Type:** `rs`
 
 ## Summary
-Defines model identifiers and provider enums for various LLM services including OpenAI, Anthropic, Google, DeepSeek, xAI, and Ollama. Provides methods to determine provider, capabilities like structured output, reasoning, and multimodal support for each model.
+This file defines model identifiers and provider enums for various LLM services including OpenAI, Anthropic, Google, DeepSeek, xAI, and Ollama. It provides a centralized mapping between model IDs and their capabilities like structured output, reasoning, and multimodal support.
 
 ## 📚 External Dependencies
 - `clap::ValueEnum`
 - `llm::builder::LLMBackend`
-- `serde`
+- `serde::{Deserialize, Serialize}`
 - `strum_macros::EnumIter`
+- `serde_json`
+- `std::fmt`
+- `std::str::FromStr`
 
 ## 🔌 Public Interfaces
-- **ModelId** (`📦 Struct`)
-  Enum representing various LLM model identifiers from different providers with serialization support and command-line argument parsing
-- **Provider** (`📦 Struct`)
-  Enum representing LLM service providers including OpenAI, Anthropic, Google, Azure, DeepSeek, xAI, Groq, Ollama, and ElevenLabs
+- **ModelId** (`🗄️ Data Model`)
+  Enum containing all supported LLM model identifiers with serialization support and provider mapping functionality
+- **Provider** (`🗄️ Data Model`)
+  Enum representing different LLM service providers like OpenAI, Anthropic, Google, etc.
 - **provider** (`🔧 Function`)
-  Returns the LLMBackend provider for a given ModelId instance
+  Method on ModelId that returns the LLMBackend provider for a given model
 - **supports_structured_output** (`🔧 Function`)
-  Returns boolean indicating if the model supports structured JSON output generation
+  Method on ModelId that returns whether a model supports structured JSON output
 - **has_reasoning** (`🔧 Function`)
-  Returns boolean indicating if the model has advanced reasoning capabilities
+  Method on ModelId that returns whether a model has advanced reasoning capabilities
 - **is_multimodal** (`🔧 Function`)
-  Returns boolean indicating if the model supports multimodal input like images and audio
+  Method on ModelId that returns whether a model supports multimodal input like images and audio

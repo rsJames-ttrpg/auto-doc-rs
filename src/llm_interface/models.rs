@@ -57,12 +57,10 @@ pub enum ModelId {
     Gemini25Flash,
 
     // DeepSeek Models
-    #[serde(rename = "deepseek-r1")]
-    DeepseekR1,
-    #[serde(rename = "deepseek-r1-distill-llama-70b")]
-    DeepseekR1Llama70b,
-    #[serde(rename = "deepseek-v3")]
-    DeepseekV3,
+    #[serde(rename = "deepseek-reasoner")]
+    DeepseekReason,
+    #[serde(rename = "deepseek-chat")]
+    DeepseekChat,
     #[serde(rename = "deepseek-coder")]
     DeepseekCoder,
 
@@ -136,10 +134,9 @@ impl ModelId {
             | Self::Gemini25Pro
             | Self::Gemini25Flash => LLMBackend::Google,
 
-            Self::DeepseekR1
-            | Self::DeepseekR1Llama70b
-            | Self::DeepseekV3
-            | Self::DeepseekCoder => LLMBackend::DeepSeek,
+            &Self::DeepseekChat | Self::DeepseekReason | Self::DeepseekCoder => {
+                LLMBackend::DeepSeek
+            }
 
             Self::Grok3
             | Self::Grok3Mini
@@ -186,9 +183,9 @@ impl ModelId {
                 | Self::Gemini20FlashExp
                 | Self::Gemini25Pro
                 | Self::Gemini25Flash
-                | Self::DeepseekR1
-                | Self::DeepseekR1Llama70b
-                | Self::DeepseekV3
+                | Self::DeepseekChat
+                | Self::DeepseekReason
+                | Self::DeepseekCoder
                 | Self::Grok3
                 | Self::Grok3Mini
                 | Self::Grok2
@@ -208,8 +205,7 @@ impl ModelId {
                 | Self::Claude4Opus
                 | Self::Gemini25Pro
                 | Self::Gemini25Flash
-                | Self::DeepseekR1
-                | Self::DeepseekR1Llama70b
+                | Self::DeepseekReason
                 | Self::Grok3Reasoning
                 | Self::Grok3MiniReasoning
         )

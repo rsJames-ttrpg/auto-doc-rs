@@ -3,24 +3,33 @@
 **Type:** `rs`
 
 ## Summary
-This file implements the command-line interface for an auto-documentation tool that crawls codebases and generates documentation using LLM analysis. It provides commands for crawling files, generating documentation, creating config files, and listing supported models.
+This is the main CLI module for an auto-documentation tool that crawls project directories and generates documentation using LLM analysis. It provides commands for crawling files, generating documentation, creating configuration files, and listing supported models.
 
 ## 📚 External Dependencies
 - `clap`
+- `clap_complete`
 - `dotenv`
 - `indicatif`
+- `std::io`
 - `std::path::PathBuf`
 - `std::time::Duration`
 - `strum`
 - `tracing`
 - `tracing_subscriber`
+- `crate::crawler::file`
+- `crate::generate`
+- `crate::llm_interface::client`
+- `crate::llm_interface::models`
+- `crate::llm_interface::pool`
+- `crate::output::file_system`
+- `crate::settings`
 
 ## 🔌 Public Interfaces
 - **run_application** (`🔧 Function`)
-  Main entry point for the CLI application that parses command-line arguments and executes the appropriate command (crawl, generate, config, or models)
+  Main async entry point that parses CLI arguments and executes the appropriate command (crawl, generate, config, or models). Returns a Result indicating success or failure.
 - **Cli** (`📦 Struct`)
-  Command-line interface structure that defines global options like log level, JSON logging, and config file path
+  Main CLI structure that defines command-line arguments including subcommands, log level, JSON logging flag, config path, and shell completions.
 - **Commands** (`📦 Struct`)
-  Enum defining available CLI subcommands: Crawl (test file targeting), Generate (create documentation), Config (generate example config), and Models (list supported models)
+  Enum defining available CLI subcommands: Crawl (test file targeting), Generate (create documentation), Config (generate example config), and Models (list supported models).
 - **LogLevel** (`📦 Struct`)
-  Enum for setting logging verbosity levels from Trace to Error, with conversion to tracing::Level
+  Enum for setting logging verbosity levels (Trace, Debug, Info, Warn, Error) that converts to tracing::Level.

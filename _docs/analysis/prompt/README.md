@@ -1,30 +1,31 @@
 # 📁 Directory: `./src/analysis/prompt`
 
-**Depth Level:** 2
+**Depth Level:** 3
 
 ## Summary
-This directory implements a template-driven prompt engineering system for multi-level code analysis. It provides structured LLM prompts that enable hierarchical documentation generation from individual files up to executive-level project summaries, serving as the core prompt management infrastructure for the analysis system.
+This directory implements a template-driven prompt generation system for automated code documentation. It provides a structured framework for creating context-aware prompts that guide LLMs through multi-level code analysis, from individual files to entire projects, ensuring consistent documentation quality and architectural understanding across different scales of analysis.
 
 ## 🎯 Key Components
-- **mod.rs**
-- **templates/**
+- **PromptTemplates struct**
+- **Template substitution system**
+- **Multi-level analysis templates**
+- **Context-aware prompt generation**
 
 ## 📋 Child Summaries
-1. Template management module providing PromptTemplates struct with methods to build customized analysis prompts by injecting context into predefined templates
-2. Template collection containing structured LLM instructions for file-level code analysis, directory synthesis, and project-level documentation generation with standardized variable substitution
+1. Template configurations that define structured analysis frameworks for automated code documentation generation at file, directory, and project levels
+2. Rust module providing a prompt template system that loads template files and generates customized prompts by substituting context-specific values into predefined templates
 
 ## 📚 External Dependencies
 - `std::path::Path`
 - `super::summary::AnalysisContext`
+- `include_str! macro`
 
 ## 🔌 Public Interfaces
 - **PromptTemplates** (`📦 Struct`)
-  Central template engine that loads and manages analysis prompt templates, providing methods to generate context-specific prompts for different analysis levels
+  Central prompt template management system that loads analysis templates and provides methods to generate customized prompts for different analysis levels by substituting context-specific values
 - **build_file_analysis_prompt** (`🔧 Function`)
-  Generates customized file analysis prompts by injecting file path and context into template structure
+  Generates context-aware prompts for individual file analysis by combining template structure with specific file path and analysis context information
 - **build_directory_synthesis_prompt** (`🔧 Function`)
-  Creates directory-level synthesis prompts for aggregating child component analysis into architectural summaries
+  Creates directory-level analysis prompts that guide synthesis of child components into cohesive architectural documentation
 - **build_project_analysis_prompt** (`🔧 Function`)
-  Produces executive-level project analysis prompts for generating comprehensive project documentation
-- **Multi-Level Template System** (`⚙️ Configuration`)
-  Hierarchical prompt template architecture supporting consistent analysis methodology across file, directory, and project abstraction levels
+  Produces executive-level project analysis prompts that focus on business value, technical architecture, and system-wide characteristics

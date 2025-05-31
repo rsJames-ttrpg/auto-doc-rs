@@ -57,3 +57,55 @@ impl LlmError {
         LlmError::Chat(error)
     }
 }
+
+#[cfg(test)]
+mod tests {
+    use crate::llm_interface::exceptions::LlmError;
+
+    #[test]
+    fn test_error_detection() {
+        // Test rate limit detection - your specific error format
+        assert!(matches!(
+            LlmError::from_error_string("Chat error: HTTP Error: HTTP status client error (429 Too Many Requests) for url (https://api.anthropic.com/v1/messages)".to_string()),
+            LlmError::RateLimit(_)
+        ));
+
+        // Test other rate limit formats
+        assert!(matches!(
+            LlmError::from_error_string("HTTP 429 Too Many Requests".to_string()),
+            LlmError::RateLimit(_)
+        ));
+
+        assert!(matches!(
+            LlmError::from_error_string("Rate limit exceeded".to_string()),
+            LlmError::RateLimit(_)
+        ));
+
+        // Test server error detection
+        assert!(matches!(
+            LlmError::from_error_string("Internal Server Error 500".to_string()),
+            LlmError::ServerError(_)
+        ));
+
+        assert!(matches!(
+            LlmError::from_error_string(
+                "Chat error: HTTP status server error (503 Service Unavailable)".to_string()
+            ),
+            LlmError::ServerError(_)
+        ));
+
+        // Test non-retryable error
+        assert!(matches!(
+            LlmError::from_error_string("Invalid API key".to_string()),
+            LlmError::Chat(_)
+        ));
+
+        // Test authentication errors (should not retry)
+        assert!(matches!(
+            LlmError::from_error_string(
+                "Chat error: HTTP status client error (401 Unauthorized)".to_string()
+            ),
+            LlmError::Chat(_)
+        ));
+    }
+}

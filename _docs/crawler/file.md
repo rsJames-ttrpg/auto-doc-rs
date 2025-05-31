@@ -3,7 +3,7 @@
 **Type:** `rs`
 
 ## Summary
-This file implements a file system crawler that recursively traverses directory structures and builds a tree representation of files and directories. It provides configurable crawling options including depth limits, glob pattern filtering, symlink handling, and hidden file inclusion.
+This file implements a file system crawler that builds a tree representation of directories and files with filtering capabilities. It provides the core FileNode enum for representing file system structures, crawling functionality with glob pattern support, and iterator implementations for traversing the resulting tree structures.
 
 ## 📚 External Dependencies
 - `std::collections::HashMap`
@@ -12,20 +12,21 @@ This file implements a file system crawler that recursively traverses directory 
 - `serde::{Deserialize, Serialize}`
 - `thiserror::Error`
 - `glob`
-- `tempfile`
+- `std::env`
+- `tempfile (test dependency)`
 
 ## 🔌 Public Interfaces
-- **FileNode** (`📦 Struct`)
-  Enum representing either a file or directory node in the file system tree with metadata like size, path, and children
-- **CrawlOptions** (`📦 Struct`)
-  Configuration struct for customizing crawl behavior including max depth, symlink following, hidden files, and glob patterns
+- **FileNode** (`🗄️ Data Model`)
+  Enum representing either a file or directory node in a file system tree, with metadata like size, path, and children for directories
+- **CrawlOptions** (`⚙️ Configuration`)
+  Configuration struct for controlling file system crawling behavior including depth limits, symlink following, hidden files, and glob patterns
 - **CrawlResult** (`🗄️ Data Model`)
   Type alias for Result<FileNode, CrawlError> representing the outcome of a crawl operation
-- **CrawlError** (`📦 Struct`)
-  Error enum for various crawl failures including IO errors, glob pattern errors, and path not found
+- **CrawlError** (`🗄️ Data Model`)
+  Error enum for various crawling failures including IO errors, glob pattern errors, and path not found errors
 - **crawl_directory** (`🔧 Function`)
-  Main entry point function that crawls a directory structure with given options and returns a FileNode tree
+  Main public function that crawls a directory structure with optional filtering and returns a FileNode tree representation
 - **FileNodeIterator** (`📦 Struct`)
-  Iterator for traversing all nodes in the file tree using depth-first traversal
+  Iterator that provides depth-first traversal over all nodes in a FileNode tree
 - **FileNodeDepthIterator** (`📦 Struct`)
-  Iterator for traversing all nodes with their depth level information
+  Iterator that provides depth-first traversal over FileNode tree with depth level information for each node

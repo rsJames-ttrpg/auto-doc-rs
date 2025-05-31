@@ -3,7 +3,7 @@
 **Type:** `rs`
 
 ## Summary
-Implements Display trait for analysis data structures to provide formatted output. Provides human-readable string representations for InterfaceType, Interface, FileAnalysis, DirectoryAnalysis, and ProjectAnalysis structs with emoji icons and markdown formatting.
+This file implements Display traits for analysis data structures, providing formatted output for file, directory, and project analysis results. It handles the presentation layer for analysis summaries with emoji-enhanced formatting.
 
 ## 📚 External Dependencies
 - `std::fmt`
@@ -11,12 +11,12 @@ Implements Display trait for analysis data structures to provide formatted outpu
 
 ## 🔌 Public Interfaces
 - **Display for InterfaceType** (`🎯 Trait`)
-  Formats InterfaceType enum variants with emoji icons and descriptive text
+  Provides formatted display of interface types with emoji prefixes for visual distinction
 - **Display for Interface** (`🎯 Trait`)
-  Formats Interface struct with name, type, and description in markdown format
+  Formats interface information with name, type, and description in markdown-style output
 - **Display for FileAnalysis** (`🎯 Trait`)
-  Formats FileAnalysis struct as markdown document with sections for summary, dependencies, and interfaces
+  Renders complete file analysis reports including summary, dependencies, and public interfaces
 - **Display for DirectoryAnalysis** (`🎯 Trait`)
-  Formats DirectoryAnalysis struct as markdown with directory path, components, and child summaries
+  Formats directory analysis with key components, child summaries, and aggregated information
 - **Display for ProjectAnalysis** (`🎯 Trait`)
-  Formats ProjectAnalysis struct as comprehensive markdown report with overview, architecture, and technologies
+  Provides comprehensive project-level analysis formatting including architecture, technologies, and risk factors

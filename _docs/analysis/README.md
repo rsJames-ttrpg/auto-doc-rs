@@ -1,43 +1,42 @@
 # 📁 Directory: `./src/analysis`
 
-**Depth Level:** 1
+**Depth Level:** 2
 
 ## Summary
-This directory implements a comprehensive LLM-powered code analysis system that provides hierarchical documentation generation from individual files up to executive-level project summaries. It serves as the core analysis engine that transforms raw code into structured, human-readable documentation through template-driven prompt engineering and standardized data models.
+This directory implements a comprehensive LLM-powered code analysis and documentation generation system. It provides structured analysis capabilities at multiple architectural levels (file, directory, project) with template-driven prompt generation, formatted output display, and strongly-typed data models for capturing analysis results.
 
 ## 🎯 Key Components
-- **summary.rs**
-- **prompt/**
-- **display.rs**
-- **mod.rs**
+- **LlmAnalyzer trait**
+- **Analysis data structures (FileAnalysis, DirectoryAnalysis, ProjectAnalysis)**
+- **PromptTemplates system**
+- **Display formatting implementations**
+- **Template-based analysis frameworks**
 
 ## 📋 Child Summaries
-1. Display trait implementations providing formatted markdown output for all analysis data structures with emoji icons and structured presentation
-2. Core data structures and LlmAnalyzer trait defining the analysis framework with FileAnalysis, DirectoryAnalysis, and ProjectAnalysis types plus error handling
-3. Module organization file exposing display, prompt, and summary submodules as public interfaces
-4. Template-driven prompt engineering system providing structured LLM instructions for multi-level code analysis with context injection capabilities
+1. Display trait implementations for formatted output of analysis results with emoji-enhanced presentation
+2. Module organization exposing display, prompt, and summary functionality as public interfaces
+3. Core data structures and traits defining the analysis system architecture with LLM integration capabilities
+4. Template-driven prompt generation system for creating context-aware analysis prompts at multiple architectural levels
+5. Template configurations defining structured analysis frameworks for automated code documentation generation
 
 ## 📚 External Dependencies
 - `async_trait`
 - `schemars`
 - `serde`
+- `thiserror`
 - `std::fmt`
 - `std::path`
-- `thiserror`
-- `crate::llm_interface::LlmClient`
 
 ## 🔌 Public Interfaces
 - **LlmAnalyzer** (`🎯 Trait`)
-  Primary async trait for coordinating LLM-based analysis of files, directories, and projects with structured JSON output
-- **FileAnalysis** (`📦 Struct`)
-  Structured analysis results for individual files including dependencies, interfaces, and summaries
-- **DirectoryAnalysis** (`📦 Struct`)
-  Hierarchical analysis results for directories with consolidated child summaries and architectural patterns
-- **ProjectAnalysis** (`📦 Struct`)
-  Executive-level project documentation including architecture overview, technologies, and business considerations
+  Main async trait defining methods for analyzing files, directories, and projects using LLM services with structured output schemas
+- **FileAnalysis** (`🗄️ Data Model`)
+  Structured data model capturing comprehensive file-level analysis including dependencies, interfaces, and architectural context
+- **DirectoryAnalysis** (`🗄️ Data Model`)
+  Hierarchical analysis model that synthesizes child components into directory-level architectural understanding
+- **ProjectAnalysis** (`🗄️ Data Model`)
+  Executive-level project analysis model capturing business value, technical architecture, and system-wide characteristics
 - **PromptTemplates** (`📦 Struct`)
-  Template engine for generating context-specific LLM prompts across different analysis abstraction levels
-- **AnalysisContext** (`📦 Struct`)
-  Configuration structure controlling project type, target audience, and analysis depth parameters
-- **Display Implementations** (`🎯 Trait`)
-  Formatted output capabilities for all analysis data structures with markdown and emoji presentation
+  Template management system providing context-aware prompt generation for multi-level code analysis operations
+- **AnalysisContext** (`⚙️ Configuration`)
+  Configuration structure specifying project type, target audience, and analysis depth for customizing LLM analysis behavior

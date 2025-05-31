@@ -4,7 +4,7 @@ use std::{
     path::PathBuf,
 };
 
-use crate::llm_interface::models::ModelId;
+use crate::llm_interface::{models::ModelId, pool::Behavior};
 use clap::ValueEnum;
 use config::{Config, ConfigError, Environment};
 use serde::{Deserialize, Serialize};
@@ -22,17 +22,44 @@ pub struct CrawlOptions {
 
 #[derive(Debug, Deserialize, Serialize, PartialEq)]
 pub struct LlmSettings {
+    pub behaviour: Behavior,
+    pub max_retries: u32,
+    pub initial_interval_ms: u32,
+    pub max_interval_s: u32,
+    pub multiplier: f64,
+    pub max_elapsed_time_s: u32,
+    pub models: Vec<LlmModel>,
+}
+
+impl Default for LlmSettings {
+    fn default() -> Self {
+        LlmSettings {
+            max_retries: 5,
+            initial_interval_ms: 5000,
+            max_interval_s: 60,
+            multiplier: 2.0,
+            max_elapsed_time_s: 300,
+            behaviour: Behavior::Failover,
+            models: vec![LlmModel::default()],
+        }
+    }
+}
+
+#[derive(Debug, Deserialize, Serialize, PartialEq)]
+pub struct LlmModel {
     pub model: ModelId,
+    pub priority: usize,
     pub api_key: Option<String>,
     pub max_tokens: Option<u32>,
     pub temperature: Option<f32>,
     pub prompt_override: Option<String>,
 }
 
-impl Default for LlmSettings {
+impl Default for LlmModel {
     fn default() -> Self {
-        LlmSettings {
+        LlmModel {
             model: ModelId::Claude4Sonnet,
+            priority: 1,
             api_key: None,
             max_tokens: Some(1500),
             temperature: Some(0.5),
@@ -41,21 +68,12 @@ impl Default for LlmSettings {
     }
 }
 
-#[derive(Debug, Deserialize, Serialize, PartialEq)]
+#[derive(Debug, Deserialize, Serialize, PartialEq, Default)]
 #[allow(unused)]
 pub struct Settings {
     pub files: CrawlOptions,
     #[serde(default)]
-    pub llm_settings: Vec<LlmSettings>,
-}
-
-impl Default for Settings {
-    fn default() -> Self {
-        Settings {
-            files: CrawlOptions::default(),
-            llm_settings: vec![LlmSettings::default()],
-        }
-    }
+    pub llm_settings: LlmSettings,
 }
 
 #[derive(Debug, Clone, ValueEnum)]
@@ -208,7 +226,7 @@ mod tests {
     fn test_settings_default() {
         let settings = Settings::default();
         assert_eq!(settings.files, CrawlOptions::default());
-        assert!(!settings.llm_settings.is_empty());
+        assert!(!settings.llm_settings.models.is_empty());
     }
 
     #[test]
@@ -222,22 +240,28 @@ mod tests {
                 exclude_patterns: vec!["target/".to_string()],
                 git_mode: false,
             },
-            llm_settings: vec![
-                LlmSettings {
-                    model: ModelId::Llama32,
-                    api_key: Some("".to_string()),
-                    max_tokens: Some(10),
-                    temperature: Some(0.1),
-                    prompt_override: None,
-                },
-                LlmSettings {
-                    model: ModelId::Claude35Haiku,
-                    api_key: Some("".to_string()),
-                    max_tokens: Some(10),
-                    temperature: Some(0.1),
-                    prompt_override: None,
-                },
-            ],
+            llm_settings: LlmSettings {
+                behaviour: Behavior::Failover,
+                models: vec![
+                    LlmModel {
+                        model: ModelId::Llama32,
+                        priority: 1,
+                        api_key: Some("".to_string()),
+                        max_tokens: Some(10),
+                        temperature: Some(0.1),
+                        prompt_override: None,
+                    },
+                    LlmModel {
+                        model: ModelId::Claude35Haiku,
+                        priority: 2,
+                        api_key: Some("".to_string()),
+                        max_tokens: Some(10),
+                        temperature: Some(0.1),
+                        prompt_override: None,
+                    },
+                ],
+                ..LlmSettings::default()
+            },
         };
 
         let serialized = serde_json::to_string(&settings).unwrap();
@@ -263,7 +287,7 @@ mod tests {
 
         let settings = result.unwrap();
         assert_eq!(settings.files, CrawlOptions::default());
-        assert!(!settings.llm_settings.is_empty());
+        assert!(!settings.llm_settings.models.is_empty());
     }
 
     #[test]
@@ -311,11 +335,16 @@ include_patterns = ["*.rs", "*.md"]
 exclude_patterns = ["target/"]
 git_mode = false
 
-[[llm_settings]]
+[llm_settings]
+behaviour = "failover"
+
+[[llm_settings.models]]
+priority = 1
 model = "claude-sonnet-4-20250514"
 api_key = "test"
 
-[[llm_settings]]
+[[llm_settings.models]]
+priority = 2
 model = "gpt-4.1"
 api_key = "test"
 "#;
@@ -339,25 +368,40 @@ api_key = "test"
         assert_eq!(settings.files.include_patterns, vec!["*.rs", "*.md"]);
         assert_eq!(settings.files.exclude_patterns, vec!["target/"]);
         assert!(!settings.files.git_mode);
-        assert_eq!(settings.llm_settings.len(), 2);
-        assert!(settings.llm_settings[0].model == ModelId::Claude4Sonnet);
-        assert!(settings.llm_settings[1].model == ModelId::Gpt41);
+        assert_eq!(settings.llm_settings.models.len(), 2);
+        assert!(settings.llm_settings.models[0].model == ModelId::Claude4Sonnet);
+        assert!(settings.llm_settings.models[1].model == ModelId::Gpt41);
     }
 
     #[test]
     #[serial]
     fn test_from_file_with_json() {
         let json_content = r#"{
-    "files": {
-        "max_depth": 2,
-        "include_hidden": false,
-        "include_patterns": ["*.json"],
-        "exclude_patterns": ["node_modules/"],
-        "git_mode": true
-    },
-    "llm_settings": [
-        {"model": "claude-3-5-haiku-latest", "api_key": "test"}
+ "files": {
+    "max_depth": 2,
+    "include_hidden": false,
+    "include_patterns": ["*.json"],
+    "exclude_patterns": ["node_modules/"],
+    "git_mode": true
+  },
+  "llm_settings": {
+    "behaviour": "failover",
+    "max_retries": 5,
+    "initial_interval_ms": 5000,
+    "max_interval_s": 60,
+    "multiplier": 2.0,
+    "max_elapsed_time_s": 300,
+    "models": [
+      {
+        "model": "claude-sonnet-4-20250514",
+        "priority": 1,
+        "api_key": null,
+        "max_tokens": 1500,
+        "temperature": 0.5,
+        "prompt_override": null
+      }
     ]
+  }
 }"#;
 
         let temp_file = NamedTempFile::with_suffix(".json").unwrap();
@@ -380,8 +424,8 @@ api_key = "test"
         assert_eq!(settings.files.include_patterns, vec!["*.json"]);
         assert_eq!(settings.files.exclude_patterns, vec!["node_modules/"]);
         assert!(settings.files.git_mode);
-        assert_eq!(settings.llm_settings.len(), 1);
-        assert!(settings.llm_settings[0].model == ModelId::Claude35Haiku);
+        assert_eq!(settings.llm_settings.models.len(), 1);
+        assert!(settings.llm_settings.models[0].model == ModelId::Claude4Sonnet);
     }
 
     #[test]
@@ -452,7 +496,7 @@ max_depth = 1
         assert!(settings.files.include_patterns.is_empty());
         assert!(settings.files.exclude_patterns.is_empty());
         assert!(!settings.files.git_mode);
-        assert!(!settings.llm_settings.is_empty());
+        assert!(!settings.llm_settings.models.is_empty());
     }
 
     #[test]

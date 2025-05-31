@@ -3,37 +3,16 @@
 **Type:** `rs`
 
 ## Summary
-This module provides a high-level interface for interacting with various LLM providers through structured and simple text responses. It includes error handling, JSON parsing strategies, and a builder pattern for configuring LLM requests with support for schema-based structured outputs.
-
-## 📚 External Dependencies
-- `llm`
-- `schemars`
-- `serde`
-- `serde_json`
-- `thiserror`
-- `tracing`
-- `tokio`
-- `dotenv`
-- `std::env`
+This is a Rust module declaration file that organizes the LLM interface components into submodules. It exposes client functionality, exception handling, JSON extraction utilities, data models, and connection pooling capabilities for LLM operations.
 
 ## 🔌 Public Interfaces
+- **client** (`📁 Module`)
+  Public module containing LLM client implementation and connection logic
+- **exceptions** (`📁 Module`)
+  Public module for LLM-related error types and exception handling
 - **extract_json** (`📁 Module`)
-  Module containing JSON extraction utilities for parsing LLM responses
+  Public module providing utilities for extracting and parsing JSON from LLM responses
 - **models** (`📁 Module`)
-  Module containing model definitions and identifiers for different LLM providers
-- **LlmError** (`📦 Struct`)
-  Error enum for LLM operations including schema serialization, build, chat, and response parsing errors
-- **LlmClient** (`📦 Struct`)
-  Main client for interacting with LLM services, supporting multiple providers with configurable parameters
-- **LlmClient::new** (`🔧 Function`)
-  Constructor for LlmClient that accepts model, API key, max tokens, and temperature configuration
-- **LlmClient::get_structured_response** (`🔧 Function`)
-  Async method to get structured JSON responses from LLM using JSON schema validation
-- **LlmClient::get_simple_response** (`🔧 Function`)
-  Async method to get simple text responses from LLM without structured output
-- **LlmClient::request** (`🔧 Function`)
-  Returns a builder pattern instance for configuring LLM requests
-- **LlmRequestBuilder** (`📦 Struct`)
-  Builder pattern for ergonomic configuration of LLM requests with fluent API
-- **try_parse** (`🔧 Function`)
-  Internal function that attempts multiple JSON parsing strategies for LLM responses
+  Public module containing data structures and models for LLM interactions
+- **pool** (`📁 Module`)
+  Public module implementing connection pooling for efficient LLM client management

@@ -2,3 +2,4 @@
 .env
 config.toml
 _test/
+mcp_server/

@@ -1,9 +1,9 @@
 # 📁 Directory: `./src/analysis/prompt/templates`
 
-**Depth Level:** 3
+**Depth Level:** 4
 
 ## Summary
-This directory contains template files that define the structured prompts and guidelines for LLM-based code analysis at different levels of abstraction. It serves as the prompt engineering foundation for the analysis system, providing standardized instructions for generating documentation from file-level code analysis up to executive-level project summaries.
+This directory contains template configurations that define structured analysis frameworks for automated code documentation generation. It provides standardized prompt templates for LLMs to analyze source code at different architectural levels - from individual files to entire projects - ensuring consistent documentation quality and format across the system.
 
 ## 🎯 Key Components
 - **file_analysis.txt**
@@ -11,14 +11,14 @@ This directory contains template files that define the structured prompts and gu
 - **project_analysis.txt**
 
 ## 📋 Child Summaries
-1. Template for generating executive-level project documentation with business value, technical architecture, and operational guidelines
-2. Template for synthesizing directory-level architectural summaries from child components with focus on system integration patterns
-3. Template for LLM-based file analysis defining extraction of dependencies, interfaces, and code summaries
+1. Template for analyzing individual source code files including dependencies, interfaces, and complexity metrics
+2. Template for synthesizing directory-level architectural documentation from child components
+3. Template for generating executive-level project summaries focusing on business value and technical architecture
 
 ## 🔌 Public Interfaces
-- **Multi-Level Analysis Template System** (`⚙️ Configuration`)
-  Hierarchical template structure supporting file, directory, and project-level analysis with consistent variable substitution and formatting guidelines
-- **Template Variable Framework** (`⚙️ Configuration`)
-  Standardized placeholder system for dynamic content injection including FILE_PATH, PROJECT_TYPE, DIRECTORY_PATH, ANALYSIS_DEPTH, and TARGET_AUDIENCE
-- **Architectural Analysis Guidelines** (`🗄️ Data Model`)
-  Structured methodology for extracting and documenting software architecture patterns, dependencies, interfaces, and system integration points across multiple abstraction levels
+- **Code Analysis Template** (`⚙️ Configuration`)
+  Standardized template structure for analyzing individual source code files and generating documentation with consistent format and depth
+- **Directory Analysis Template** (`⚙️ Configuration`)
+  Template framework for creating high-level directory documentation that abstracts file details into architectural patterns and system integration points
+- **Project Analysis Template** (`⚙️ Configuration`)
+  Executive-level documentation template that synthesizes project-wide analysis into business-focused summaries covering technical architecture, scalability, and maintainability

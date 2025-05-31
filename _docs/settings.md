@@ -3,34 +3,38 @@
 **Type:** `rs`
 
 ## Summary
-This file defines configuration structures and loading mechanisms for an autodoc application. It provides settings for file crawling options and LLM configurations, with support for loading from environment variables, configuration files (JSON/TOML/YAML), and writing default configurations.
+This file defines the configuration system for an application that processes files and interacts with LLMs. It provides serializable configuration structures for file crawling options and LLM settings, with support for loading from files or environment variables and writing default configurations in multiple formats.
 
 ## 📚 External Dependencies
 - `std::fs::File`
 - `std::io`
 - `std::path::PathBuf`
 - `crate::llm_interface::models::ModelId`
+- `crate::llm_interface::pool::Behavior`
 - `clap::ValueEnum`
-- `config`
-- `serde`
+- `config::Config`
+- `config::ConfigError`
+- `config::Environment`
+- `serde::Deserialize`
+- `serde::Serialize`
 - `serde_json`
 - `toml`
 - `serde_yaml`
-- `serial_test`
-- `tempfile`
 
 ## 🔌 Public Interfaces
 - **CrawlOptions** (`📦 Struct`)
-  Configuration struct for file crawling behavior including depth limits, hidden file inclusion, pattern matching, and git mode
+  Configuration struct for file crawling options including depth limits, pattern matching, and git mode settings
 - **LlmSettings** (`📦 Struct`)
-  Configuration struct for LLM settings including model selection, API keys, token limits, temperature, and prompt overrides
+  Configuration struct for LLM behavior including retry policies, timeout settings, and model configurations
+- **LlmModel** (`📦 Struct`)
+  Configuration struct for individual LLM model settings including API keys, token limits, and temperature
 - **Settings** (`📦 Struct`)
-  Main configuration struct containing file crawling options and multiple LLM settings configurations
+  Main configuration struct combining file crawling options and LLM settings
 - **FileType** (`📦 Struct`)
-  Enum defining supported configuration file formats: JSON, TOML, and YAML
+  Enum for supported configuration file formats (Json, Toml, Yaml)
 - **from_env** (`🔧 Function`)
-  Static method to load Settings from environment variables with AUTODOC prefix
+  Creates Settings instance from environment variables with AUTODOC prefix
 - **from_file** (`🔧 Function`)
-  Static method to load Settings from a configuration file, supporting multiple formats
+  Creates Settings instance from configuration file with environment variable overrides
 - **write_default_config** (`🔧 Function`)
-  Static method to write default configuration to a file or stdout in specified format
+  Writes default configuration to file or stdout in specified format (JSON, TOML, YAML)

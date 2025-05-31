@@ -1,7 +1,8 @@
 use crate::crawler::file::{CrawlOptions, crawl_directory};
 use crate::generate::{AnalysisCrawlOptions, AnalysisCrawler};
-use crate::llm_interface::LlmClient;
+use crate::llm_interface::client::LlmClient;
 use crate::llm_interface::models::ModelId;
+use crate::llm_interface::pool::{LlmPool, PoolMember};
 use crate::output::file_system::{MarkdownConfig, MarkdownGenerator};
 use crate::settings::{FileType, Settings};
 use clap::CommandFactory;
@@ -176,12 +177,24 @@ pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
             directory_output,
         }) => {
             dotenv().ok();
-            let analyser: LlmClient = LlmClient::new(
-                settings.llm_settings.first().unwrap().model.clone(),
-                settings.llm_settings.first().unwrap().api_key.clone(),
-                settings.llm_settings.first().unwrap().max_tokens,
-                settings.llm_settings.first().unwrap().temperature,
-            );
+            let clients = settings
+                .llm_settings
+                .models
+                .iter()
+                .map(|m| {
+                    PoolMember::new(
+                        m.priority,
+                        LlmClient::new(
+                            m.model.clone(),
+                            m.api_key.clone(),
+                            m.max_tokens,
+                            m.temperature,
+                        ),
+                    )
+                })
+                .collect::<Vec<PoolMember>>();
+
+            let analyser: LlmPool = LlmPool::new(clients, settings.llm_settings.behaviour);
             let crawler = AnalysisCrawler::new(analyser);
 
             let options = AnalysisCrawlOptions {
