@@ -151,7 +151,7 @@ fn crawl() -> Result<(), Box<dyn std::error::Error>> {
 }
 
 pub async fn run_application() -> Result<(), Box<dyn std::error::Error>> {
-    let cli = Cli::parse();
+    let cli: Cli = Cli::parse();
     if let Some(generator) = cli.completions {
         let mut cmd = Cli::command();
         print_completions(generator, &mut cmd);

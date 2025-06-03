@@ -1,0 +1,25 @@
+[package]
+name = "doc-reader"
+version = "0.1.0"
+edition = "2024"
+
+[dependencies]
+anyhow = "1.0.98"
+clap = { version = "4.5.39", features = ["derive"] }
+clap_complete = "4.5.52"
+config = "0.15.11"
+dirs = "6.0.0"
+grep = "0.3.2"
+mcp-core = { version = "0.1.50", features = ["sse"] }
+mcp-core-macros = "0.1.30"
+schemars = "0.8.0"
+serde = { version = "1.0.219", features = ["derive"] }
+serde_json = "1.0.140"
+serde_yaml = "0.9.34"
+shellexpand = "3.1.1"
+tempfile = "3.20.0"
+thiserror = "2.0.12"
+tokio = { version = "1.45.1", features = ["full"] }
+toml = "0.8.22"
+tracing = "0.1.41"
+tracing-subscriber = { version = "0.3.19", features = ["env-filter", "json"] }

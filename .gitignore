@@ -1,5 +1,6 @@
 /target
 .env
 config.toml
+config.yaml
 _test/
 mcp_server/

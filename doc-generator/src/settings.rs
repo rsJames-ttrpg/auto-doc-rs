@@ -98,7 +98,7 @@ impl Settings {
                     .try_parsing(true)
                     .separator(".")
                     .list_separator(",")
-                    .with_list_parse_key("llm_settings")
+                    .with_list_parse_key("llm_settings.models")
                     .with_list_parse_key("files.include_patterns")
                     .with_list_parse_key("files.exclude_patterns"),
             )
